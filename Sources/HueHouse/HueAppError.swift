@@ -6,7 +6,7 @@ enum HueAppError: LocalizedError {
     case missingApplicationKey
     case httpStatus(Int)
     case bridgeRejected(String)
-    case partialGradient(failed: [String], total: Int, underlying: Error?)
+    case partialGradient(failed: [String], total: Int, underlying: Error?, previouslySkipped: Int)
 
     var errorDescription: String? {
         switch self {
@@ -16,8 +16,13 @@ enum HueAppError: LocalizedError {
             "The bridge address \u{201C}\(host)\u{201D} is not valid."
         case .missingApplicationKey:
             "This Mac is not paired with the Hue Bridge yet."
-        case .partialGradient(let failed, let total, let underlying):
-            HueAppError.partialGradientMessage(failed: failed, total: total, underlying: underlying)
+        case .partialGradient(let failed, let total, let underlying, let previouslySkipped):
+            HueAppError.partialGradientMessage(
+                failed: failed,
+                total: total,
+                underlying: underlying,
+                previouslySkipped: previouslySkipped
+            )
         case .httpStatus(let status):
             switch status {
             case 429:
@@ -67,9 +72,10 @@ enum HueAppError: LocalizedError {
     private static func partialGradientMessage(
         failed: [String],
         total: Int,
-        underlying: Error?
+        underlying: Error?,
+        previouslySkipped: Int
     ) -> String {
-        let succeeded = total - failed.count
+        let succeeded = total - failed.count - previouslySkipped
         let names: String = {
             switch failed.count {
             case 0: return ""
@@ -82,12 +88,22 @@ enum HueAppError: LocalizedError {
             }
         }()
 
-        var reason = ""
-        if let underlying, case let HueAppError.httpStatus(status) = underlying, status == 429 {
-            reason = " The bridge briefly rate-limited some requests; try again."
+        var pieces: [String] = ["Updated \(succeeded) of \(total) lights."]
+
+        if !names.isEmpty {
+            pieces.append("Couldn\u{2019}t reach \(names) — they\u{2019}ll be skipped for the rest of this session.")
         }
 
-        return "Updated \(succeeded) of \(total) lights. Couldn\u{2019}t reach \(names).\(reason)"
+        if previouslySkipped > 0 {
+            let suffix = previouslySkipped == 1 ? "light was" : "lights were"
+            pieces.append("\(previouslySkipped) \(suffix) skipped from earlier failures this session.")
+        }
+
+        if let underlying, case let HueAppError.httpStatus(status) = underlying, status == 429 {
+            pieces.append("The bridge rate-limited some requests.")
+        }
+
+        return pieces.joined(separator: " ")
     }
 
     /// Capitalizes the first letter and ensures the message ends with terminal punctuation.

@@ -551,6 +551,10 @@ private struct GradientControlPanel: View {
         store.selectedGroupLights.count
     }
 
+    private var skippedInSelection: Int {
+        store.selectedGroupLights.filter { store.skippedLightIDs.contains($0.id) }.count
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
@@ -559,6 +563,20 @@ private struct GradientControlPanel: View {
                 Text("\(selectedGroupLightCount) lights selected")
                     .font(.system(.callout, design: .rounded))
                     .foregroundStyle(HueTheme.secondaryText(colorScheme))
+
+                if skippedInSelection > 0 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("\(skippedInSelection) skipped this session")
+                            .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                        Button("Reset") {
+                            store.resetSkippedLights()
+                        }
+                        .buttonStyle(.link)
+                    }
+                    .font(.caption)
+                }
             }
 
             VStack(alignment: .leading, spacing: 8) {

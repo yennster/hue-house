@@ -239,12 +239,21 @@ final class HueStore: ObservableObject {
     }
 
     func applySelectedGradient() async {
-        let targetLights = selectedGroupLights
+        let allCandidates = selectedGroupLights
+        let skipSnapshot = skippedLightIDs
+        let targetLights = allCandidates.filter { !skipSnapshot.contains($0.id) }
+        let previouslySkippedCount = allCandidates.count - targetLights.count
         let gradient = selectedGradient
 
         await run("Could not apply gradient.") {
-            guard !targetLights.isEmpty else {
+            guard !allCandidates.isEmpty else {
                 throw HueAppError.bridgeRejected("No lights were found in \(selectedGroup.name).")
+            }
+
+            guard !targetLights.isEmpty else {
+                throw HueAppError.bridgeRejected(
+                    "All lights in \(selectedGroup.name) were skipped earlier this session. Reset the skip list to try again."
+                )
             }
 
             let client = try currentClient()
@@ -292,16 +301,31 @@ final class HueStore: ObservableObject {
                 return collected
             }
 
+            // Remember failures for the rest of the session so the next gradient
+            // apply doesn't keep hammering bulbs the bridge keeps refusing.
+            for (light, _) in failures {
+                skippedLightIDs.insert(light.id)
+            }
+
             try await refreshResourcesWithoutSpinner()
 
+            // Only surface an alert for new failures. Lights that were already
+            // skipped earlier in this session stay quiet — the inline "skipped
+            // this session" badge in the gradient panel is enough.
             if !failures.isEmpty {
                 throw HueAppError.partialGradient(
                     failed: failures.map(\.0.name),
-                    total: total,
-                    underlying: failures.first?.1
+                    total: allCandidates.count,
+                    underlying: failures.first?.1,
+                    previouslySkipped: previouslySkippedCount
                 )
             }
         }
+    }
+
+    /// Clears the in-memory skip list so previously-failing lights are tried again.
+    func resetSkippedLights() {
+        skippedLightIDs.removeAll()
     }
 
     func forgetBridge() {
@@ -313,6 +337,7 @@ final class HueStore: ObservableObject {
         groups = []
         selectedGroupID = HueLightGroup.allLightsID
         selectedGradientID = HueGradientPreset.fallback.id
+        skippedLightIDs.removeAll()
     }
 
     func lights(in groupID: String) -> [HueLight] {
