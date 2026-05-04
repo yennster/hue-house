@@ -19,6 +19,9 @@
     <img alt="License" src="https://img.shields.io/github/license/yennster/philips-hue-mac-app?style=for-the-badge">
   </a>
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/yennster/philips-hue-mac-app?style=for-the-badge">
+  <a href="https://buymeacoffee.com/yennster">
+    <img alt="Buy Me a Coffee" src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-yennster-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black">
+  </a>
 </p>
 
 <p align="center">
@@ -140,3 +143,7 @@ Hue House talks directly to the Hue Bridge on your local network. The app does n
 Current app version: `0.1.0`
 
 Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.1.0` so the repository badges, release notes, and app bundle version stay aligned.
+
+## Support
+
+If Hue House makes your mornings a little brighter, you can [buy me a coffee](https://buymeacoffee.com/yennster). Always appreciated, never required.

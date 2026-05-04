@@ -13,6 +13,15 @@ final class HueStore: ObservableObject {
     @Published var isWorking = false
     @Published var errorAlert: HueErrorAlert?
     @Published var hasAttemptedDiscovery = false
+    @Published var customGradients: [HueGradientPreset] = [] {
+        didSet { persistCustomGradients() }
+    }
+
+    /// Lights that returned errors (typically HTTP 429) during the current
+    /// session. Skipped for the remainder of the session so gradient applies
+    /// don't waste time on a bulb the bridge keeps refusing. Cleared when the
+    /// user forgets the bridge or relaunches the app.
+    @Published private(set) var skippedLightIDs: Set<String> = []
 
     var localDiscoveryDescription: String {
         HueBridgeClient.localDiscoveryDescription()
@@ -31,6 +40,59 @@ final class HueStore: ObservableObject {
     init() {
         bridgeHost = UserDefaults.standard.string(forKey: HueAppStorage.bridgeHostKey) ?? ""
         applicationKey = KeychainStore.read()
+        if let data = UserDefaults.standard.data(forKey: HueAppStorage.customGradientsKey),
+           let decoded = try? JSONDecoder().decode([HueGradientPreset].self, from: data) {
+            customGradients = decoded
+        }
+    }
+
+    var availableGradients: [HueGradientPreset] {
+        HueGradientPreset.all + customGradients
+    }
+
+    func addCustomGradient(title: String, css: String) throws -> HueGradientPreset {
+        let parsedColors = try HueCSSGradient.parse(css)
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedTitle = trimmedTitle.isEmpty ? defaultCustomTitle() : trimmedTitle
+        let preset = HueGradientPreset(
+            id: "custom-\(UUID().uuidString)",
+            title: resolvedTitle,
+            subtitle: "Imported · \(parsedColors.count) stops",
+            brightness: 78,
+            fallbackMirek: 300,
+            colors: parsedColors,
+            isCustom: true
+        )
+        customGradients.append(preset)
+        selectedGradientID = preset.id
+        return preset
+    }
+
+    func removeCustomGradient(id: String) {
+        customGradients.removeAll { $0.id == id }
+        if selectedGradientID == id {
+            selectedGradientID = HueGradientPreset.fallback.id
+        }
+    }
+
+    private func defaultCustomTitle() -> String {
+        let existing = customGradients.compactMap { preset -> Int? in
+            guard preset.title.hasPrefix("Custom ") else { return nil }
+            return Int(preset.title.dropFirst("Custom ".count))
+        }
+        let next = (existing.max() ?? 0) + 1
+        return "Custom \(next)"
+    }
+
+    private func persistCustomGradients() {
+        let defaults = UserDefaults.standard
+        guard !customGradients.isEmpty else {
+            defaults.removeObject(forKey: HueAppStorage.customGradientsKey)
+            return
+        }
+        if let data = try? JSONEncoder().encode(customGradients) {
+            defaults.set(data, forKey: HueAppStorage.customGradientsKey)
+        }
     }
 
     var canControlLights: Bool {
@@ -77,7 +139,7 @@ final class HueStore: ObservableObject {
     }
 
     var selectedGradient: HueGradientPreset {
-        HueGradientPreset.all.first { $0.id == selectedGradientID } ?? .fallback
+        availableGradients.first { $0.id == selectedGradientID } ?? .fallback
     }
 
     var selectedGroupLights: [HueLight] {

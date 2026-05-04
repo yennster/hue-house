@@ -270,7 +270,7 @@ struct HueGradientPoint: Decodable, Equatable, Sendable {
     let xy: HueXY
 }
 
-struct HueGradientColor: Hashable, Sendable {
+struct HueGradientColor: Hashable, Sendable, Codable {
     let x: Double
     let y: Double
     let red: Double
@@ -279,6 +279,36 @@ struct HueGradientColor: Hashable, Sendable {
 
     var xyObject: [String: [String: Double]] {
         ["xy": ["x": x, "y": y]]
+    }
+
+    /// Builds a gradient color from sRGB components in the 0…1 range. Performs
+    /// gamma decoding and converts to CIE 1931 xy via the standard sRGB → XYZ
+    /// matrix (D65 reference white) so the bridge interprets the chromaticity
+    /// the same way a CSS browser does.
+    static func fromSRGB(red r: Double, green g: Double, blue b: Double) -> HueGradientColor {
+        func linearize(_ component: Double) -> Double {
+            let c = min(1, max(0, component))
+            return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        let lr = linearize(r)
+        let lg = linearize(g)
+        let lb = linearize(b)
+
+        let xValue = lr * 0.4124564 + lg * 0.3575761 + lb * 0.1804375
+        let yValue = lr * 0.2126729 + lg * 0.7151522 + lb * 0.0721750
+        let zValue = lr * 0.0193339 + lg * 0.1191920 + lb * 0.9503041
+        let sum = xValue + yValue + zValue
+
+        let x = sum > 0 ? xValue / sum : 0.3127  // D65 white point
+        let y = sum > 0 ? yValue / sum : 0.3290
+
+        return HueGradientColor(
+            x: x,
+            y: y,
+            red: min(1, max(0, r)),
+            green: min(1, max(0, g)),
+            blue: min(1, max(0, b))
+        )
     }
 
     static func mix(_ start: HueGradientColor, _ end: HueGradientColor, amount: Double) -> HueGradientColor {
@@ -293,13 +323,47 @@ struct HueGradientColor: Hashable, Sendable {
     }
 }
 
-struct HueGradientPreset: Identifiable, Hashable, Sendable {
+struct HueGradientPreset: Identifiable, Hashable, Sendable, Codable {
     let id: String
     let title: String
     let subtitle: String
     let brightness: Double
     let fallbackMirek: Int
     let colors: [HueGradientColor]
+    let isCustom: Bool
+
+    init(
+        id: String,
+        title: String,
+        subtitle: String,
+        brightness: Double,
+        fallbackMirek: Int,
+        colors: [HueGradientColor],
+        isCustom: Bool = false
+    ) {
+        self.id = id
+        self.title = title
+        self.subtitle = subtitle
+        self.brightness = brightness
+        self.fallbackMirek = fallbackMirek
+        self.colors = colors
+        self.isCustom = isCustom
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, subtitle, brightness, fallbackMirek, colors, isCustom
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        subtitle = try c.decode(String.self, forKey: .subtitle)
+        brightness = try c.decode(Double.self, forKey: .brightness)
+        fallbackMirek = try c.decode(Int.self, forKey: .fallbackMirek)
+        colors = try c.decode([HueGradientColor].self, forKey: .colors)
+        isCustom = try c.decodeIfPresent(Bool.self, forKey: .isCustom) ?? false
+    }
 
     static let all: [HueGradientPreset] = [
         HueGradientPreset(

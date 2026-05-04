@@ -15,6 +15,14 @@ struct HueHouseApp: App {
                 .environmentObject(store)
                 .frame(minWidth: 760, minHeight: 540)
                 .task {
+                    // Adding a MenuBarExtra scene can flip the activation policy
+                    // to .accessory on some macOS versions, which prevents the
+                    // main window from accepting key status — typing in any
+                    // TextField then beeps. Force regular activation so the
+                    // window can take first responder normally.
+                    NSApplication.shared.setActivationPolicy(.regular)
+                    NSApp.activate(ignoringOtherApps: true)
+
                     HueAppearanceMode.apply(
                         HueAppearanceMode(rawValue: appearanceModeRawValue) ?? .system
                     )

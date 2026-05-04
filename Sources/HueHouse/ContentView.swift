@@ -33,7 +33,6 @@ struct ContentView: View {
         .foregroundStyle(HueTheme.primaryText(colorScheme))
         .tint(HueTheme.controlTint(colorScheme))
         .symbolRenderingMode(.monochrome)
-        .textSelection(.disabled)
         .alert(
             store.errorAlert?.title ?? "",
             isPresented: Binding(
@@ -546,6 +545,7 @@ private struct LightControlView: View {
 private struct GradientControlPanel: View {
     @EnvironmentObject private var store: HueStore
     @Environment(\.colorScheme) private var colorScheme
+    @State private var isImportingCSSGradient = false
 
     private var selectedGroupLightCount: Int {
         store.selectedGroupLights.count
@@ -586,20 +586,32 @@ private struct GradientControlPanel: View {
 
                 ScrollView(.vertical, showsIndicators: true) {
                     LazyVStack(spacing: 10) {
-                        ForEach(HueGradientPreset.all) { preset in
+                        ForEach(store.availableGradients) { preset in
                             GradientPresetButton(
                                 preset: preset,
-                                isSelected: store.selectedGradientID == preset.id
-                            ) {
-                                store.selectedGradientID = preset.id
-                                Task { await store.applySelectedGradient() }
-                            }
+                                isSelected: store.selectedGradientID == preset.id,
+                                onTap: {
+                                    store.selectedGradientID = preset.id
+                                    Task { await store.applySelectedGradient() }
+                                },
+                                onDelete: preset.isCustom
+                                    ? { store.removeCustomGradient(id: preset.id) }
+                                    : nil
+                            )
                             .disabled(store.isWorking || selectedGroupLightCount == 0)
                         }
                     }
                     .padding(.trailing, 4)
                 }
                 .scrollIndicators(.visible)
+
+                Button {
+                    isImportingCSSGradient = true
+                } label: {
+                    Label("Import CSS Gradient", systemImage: "square.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SiriGlassButtonStyle(tone: .quiet, fullWidth: true))
             }
             .frame(maxHeight: .infinity)
 
@@ -615,17 +627,22 @@ private struct GradientControlPanel: View {
         }
         .padding(18)
         .hueGlass(cornerRadius: 30, tint: HueTheme.glassTint(colorScheme, opacity: 0.07))
+        .sheet(isPresented: $isImportingCSSGradient) {
+            ImportCSSGradientSheet()
+                .environmentObject(store)
+        }
     }
 }
 
 private struct GradientPresetButton: View {
     let preset: HueGradientPreset
     let isSelected: Bool
-    let action: () -> Void
+    let onTap: () -> Void
+    let onDelete: (() -> Void)?
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Button(action: action) {
+        Button(action: onTap) {
             HStack(spacing: 12) {
                 HuePaletteStrip(colors: preset.colors)
                     .frame(width: 62, height: 44)
@@ -646,6 +663,21 @@ private struct GradientPresetButton: View {
 
                 Spacer()
 
+                if let onDelete {
+                    Button(role: .destructive) {
+                        onDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                            .padding(6)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Delete custom gradient")
+                    .pointerStyleArrow()
+                }
+
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(isSelected ? HueTheme.primaryText(colorScheme) : HueTheme.tertiaryText(colorScheme))
             }
@@ -662,18 +694,142 @@ private struct GradientPresetButton: View {
     }
 }
 
+private struct ImportCSSGradientSheet: View {
+    @EnvironmentObject private var store: HueStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var title: String = ""
+    @State private var cssInput: String = ""
+    @State private var parsedColors: [HueGradientColor] = []
+    @State private var parseError: String?
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case title, css
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Import CSS Gradient")
+                    .font(.system(.title2, design: .rounded).weight(.semibold))
+                Text("Paste a CSS string like \u{201C}linear-gradient(90deg, #833AB4, #FD1D1D, #FCB045)\u{201D}.")
+                    .font(.callout)
+                    .foregroundStyle(HueTheme.secondaryText(colorScheme))
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Name (optional)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                TextField("Custom gradient", text: $title)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .title)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("CSS gradient")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                TextEditor(text: $cssInput)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(minHeight: 110)
+                    .padding(6)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(HueTheme.hairline(colorScheme, opacity: 0.2), lineWidth: 0.75)
+                    )
+                    .focused($focusedField, equals: .css)
+                    .onChange(of: cssInput) { _, _ in updatePreview() }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Preview")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(HueTheme.secondaryText(colorScheme))
+
+                if !parsedColors.isEmpty {
+                    HuePaletteStrip(colors: parsedColors)
+                        .frame(height: 44)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(HueTheme.hairline(colorScheme, opacity: 0.25), lineWidth: 0.75)
+                        )
+                    Text("\(parsedColors.count) color stop\(parsedColors.count == 1 ? "" : "s") detected")
+                        .font(.caption)
+                        .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                } else if let parseError {
+                    Label(parseError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                } else {
+                    Text("Paste a gradient above to see a preview.")
+                        .font(.callout)
+                        .foregroundStyle(HueTheme.tertiaryText(colorScheme))
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Save") { save() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(parsedColors.isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 460)
+        .onAppear {
+            DispatchQueue.main.async {
+                focusedField = .css
+            }
+        }
+    }
+
+    private func updatePreview() {
+        let trimmed = cssInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            parsedColors = []
+            parseError = nil
+            return
+        }
+        do {
+            parsedColors = try HueCSSGradient.parse(cssInput)
+            parseError = nil
+        } catch {
+            parsedColors = []
+            parseError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func save() {
+        do {
+            _ = try store.addCustomGradient(title: title, css: cssInput)
+            dismiss()
+        } catch {
+            parseError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+}
+
 extension View {
     /// Forces the cursor to the standard arrow while hovering this view.
-    /// Works around SwiftUI's tendency to flip Text into the I-beam cursor
-    /// inside plain-styled buttons on macOS.
+    /// On macOS 15+ this uses SwiftUI's first-party `pointerStyle`. On older
+    /// macOS it falls back to a no-op rather than manipulating `NSCursor`
+    /// directly, since unmatched push/pop calls can leak across views.
     @ViewBuilder
     func pointerStyleArrow() -> some View {
-        self.onHover { hovering in
-            if hovering {
-                NSCursor.arrow.push()
-            } else {
-                NSCursor.pop()
-            }
+        if #available(macOS 15.0, *) {
+            self.pointerStyle(.default)
+        } else {
+            self
         }
     }
 }

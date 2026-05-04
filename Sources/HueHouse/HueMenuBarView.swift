@@ -81,7 +81,7 @@ struct HueMenuBarView: View {
         VStack(alignment: .leading, spacing: 4) {
             sectionLabel("Gradients")
             VStack(spacing: 4) {
-                ForEach(HueGradientPreset.all) { preset in
+                ForEach(store.availableGradients) { preset in
                     Button {
                         store.selectedGradientID = preset.id
                         Task { await store.applySelectedGradient() }
