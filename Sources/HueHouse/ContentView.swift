@@ -20,7 +20,7 @@ struct ContentView: View {
                     switch effectiveTab {
                     case .lights:
                         LightControlView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(maxWidth: .infinity, idealHeight: 480)
                     case .bridge:
                         BridgeTabView()
                             .frame(maxWidth: .infinity)
@@ -61,7 +61,7 @@ struct ContentView: View {
     }
 
     private var visibleTabs: [HueTab] {
-        store.canControlLights ? HueTab.allCases : [.bridge]
+        store.canControlLights ? [.bridge, .lights] : [.bridge]
     }
 
     private var tabBadges: [HueTab: String] {
@@ -389,23 +389,40 @@ private struct PairingView: View {
                 Divider()
                     .overlay(HueTheme.hairline(colorScheme, opacity: 0.16))
 
-                DisclosureGroup(isExpanded: $isManualIPAddressVisible) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Use this only if automatic discovery cannot see your bridge.")
-                            .font(.system(.caption, design: .rounded))
-                            .foregroundStyle(HueTheme.secondaryText(colorScheme))
-
-                        TextField("Bridge IP address", text: $store.bridgeHost)
-                            .font(.system(.body, design: .monospaced))
-                            .siriTextFieldChrome()
-                            .disabled(store.isWorking)
+                VStack(alignment: .leading, spacing: 10) {
+                    Button {
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) {
+                            isManualIPAddressVisible.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: isManualIPAddressVisible ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .frame(width: 12)
+                            Label("Manual IP address", systemImage: "number")
+                                .font(.system(.callout, design: .rounded).weight(.semibold))
+                        }
+                        .contentShape(Rectangle())
                     }
-                    .padding(.top, 8)
-                } label: {
-                    Label("Manual IP address", systemImage: "number")
-                        .font(.system(.callout, design: .rounded).weight(.semibold))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(HueTheme.primaryText(colorScheme))
+
+                    if isManualIPAddressVisible {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Use this only if automatic discovery cannot see your bridge.")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(HueTheme.secondaryText(colorScheme))
+
+                            TextField("Bridge IP address", text: $store.bridgeHost)
+                                .font(.system(.body, design: .monospaced))
+                                .siriTextFieldChrome()
+                                .disabled(store.isWorking)
+                        }
+                        .padding(.leading, 18)
+                    }
                 }
-                .foregroundStyle(HueTheme.primaryText(colorScheme))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -562,19 +579,24 @@ private struct GradientControlPanel: View {
                 Text("Palettes")
                     .siriSectionTitle()
 
-                ForEach(HueGradientPreset.all) { preset in
-                    GradientPresetButton(
-                        preset: preset,
-                        isSelected: store.selectedGradientID == preset.id
-                    ) {
-                        store.selectedGradientID = preset.id
-                        Task { await store.applySelectedGradient() }
+                ScrollView(.vertical, showsIndicators: true) {
+                    LazyVStack(spacing: 10) {
+                        ForEach(HueGradientPreset.all) { preset in
+                            GradientPresetButton(
+                                preset: preset,
+                                isSelected: store.selectedGradientID == preset.id
+                            ) {
+                                store.selectedGradientID = preset.id
+                                Task { await store.applySelectedGradient() }
+                            }
+                            .disabled(store.isWorking || selectedGroupLightCount == 0)
+                        }
                     }
-                    .disabled(store.isWorking || selectedGroupLightCount == 0)
+                    .padding(.trailing, 4)
                 }
+                .scrollIndicators(.visible)
             }
-
-            Spacer(minLength: 0)
+            .frame(maxHeight: .infinity)
 
             Button {
                 Task { await store.applySelectedGradient() }
@@ -615,6 +637,7 @@ private struct GradientPresetButton: View {
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(HueTheme.secondaryText(colorScheme))
                 }
+                .textSelection(.disabled)
 
                 Spacer()
 
@@ -630,6 +653,23 @@ private struct GradientPresetButton: View {
             )
         }
         .buttonStyle(.plain)
+        .pointerStyleArrow()
+    }
+}
+
+extension View {
+    /// Forces the cursor to the standard arrow while hovering this view.
+    /// Works around SwiftUI's tendency to flip Text into the I-beam cursor
+    /// inside plain-styled buttons on macOS.
+    @ViewBuilder
+    func pointerStyleArrow() -> some View {
+        self.onHover { hovering in
+            if hovering {
+                NSCursor.arrow.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }
 

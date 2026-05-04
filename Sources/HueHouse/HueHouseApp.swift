@@ -13,13 +13,20 @@ struct HueHouseApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
-                .preferredColorScheme(appearanceMode.colorScheme)
-                .frame(minWidth: 720, minHeight: 480)
+                .frame(minWidth: 760, minHeight: 540)
                 .task {
+                    HueAppearanceMode.apply(
+                        HueAppearanceMode(rawValue: appearanceModeRawValue) ?? .system
+                    )
                     await store.refreshLightsIfReady()
                 }
+                .onChange(of: appearanceModeRawValue) { _, newValue in
+                    HueAppearanceMode.apply(
+                        HueAppearanceMode(rawValue: newValue) ?? .system
+                    )
+                }
         }
-        .windowResizability(.contentMinSize)
+        .windowResizability(.contentSize)
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(after: .appInfo) {
@@ -40,15 +47,10 @@ struct HueHouseApp: App {
         MenuBarExtra {
             HueMenuBarView()
                 .environmentObject(store)
-                .preferredColorScheme(appearanceMode.colorScheme)
         } label: {
             HueMenuBarLabel()
                 .environmentObject(store)
         }
         .menuBarExtraStyle(.window)
-    }
-
-    private var appearanceMode: HueAppearanceMode {
-        HueAppearanceMode(rawValue: appearanceModeRawValue) ?? .system
     }
 }

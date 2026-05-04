@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum HueAppearanceMode: String, CaseIterable, Identifiable {
@@ -38,5 +39,23 @@ enum HueAppearanceMode: String, CaseIterable, Identifiable {
         case .dark:
             .dark
         }
+    }
+
+    /// `nil` means "follow the system" — assigning nil to `NSApp.appearance`
+    /// removes any per-app override.
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system:
+            nil
+        case .light:
+            NSAppearance(named: .aqua)
+        case .dark:
+            NSAppearance(named: .darkAqua)
+        }
+    }
+
+    @MainActor
+    static func apply(_ mode: HueAppearanceMode) {
+        NSApplication.shared.appearance = mode.nsAppearance
     }
 }
