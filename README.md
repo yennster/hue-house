@@ -5,20 +5,20 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yennster/philips-hue-mac-app/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-0.1.0-black?style=for-the-badge">
+  <a href="https://github.com/yennster/hue-house/releases">
+    <img alt="Version" src="https://img.shields.io/badge/version-0.2.0-black?style=for-the-badge">
   </a>
   <a href="https://www.swift.org">
     <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6.0-black?style=for-the-badge&logo=swift">
   </a>
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-black?style=for-the-badge&logo=apple">
-  <a href="https://github.com/yennster/philips-hue-mac-app/stargazers">
-    <img alt="GitHub stars" src="https://img.shields.io/github/stars/yennster/philips-hue-mac-app?style=for-the-badge">
+  <a href="https://github.com/yennster/hue-house/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/yennster/hue-house?style=for-the-badge">
   </a>
-  <a href="https://github.com/yennster/philips-hue-mac-app/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/github/license/yennster/philips-hue-mac-app?style=for-the-badge">
+  <a href="https://github.com/yennster/hue-house/blob/main/LICENSE">
+    <img alt="License" src="https://img.shields.io/github/license/yennster/hue-house?style=for-the-badge">
   </a>
-  <img alt="Last commit" src="https://img.shields.io/github/last-commit/yennster/philips-hue-mac-app?style=for-the-badge">
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/yennster/hue-house?style=for-the-badge">
 </p>
 
 <p align="center">
@@ -145,7 +145,7 @@ Hue House talks directly to the Hue Bridge on your local network. The app does n
 
 ## Versioning
 
-Current app version: `0.1.0`
+Current app version: `0.2.0`
 
-Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.1.0` so the repository badges, release notes, and app bundle version stay aligned.
+Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.2.0` so the repository badges, release notes, and app bundle version stay aligned.
 
