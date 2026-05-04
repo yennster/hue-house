@@ -49,7 +49,7 @@ Hue House is a small SwiftUI Mac app for finding a Philips Hue Bridge on your cu
 If Hue House makes your mornings a little brighter, a coffee tip is always appreciated, never required.
 
 <p align="center">
-  <a href="https://www.buymeacoffee.com/yennster"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=yennster&button_colour=ec5fb2&font_colour=FFFFFF&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" alt="Buy Me a Coffee"></a>
+  <a href="https://www.buymeacoffee.com/yennster"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=yennster&button_colour=ec5fb2&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
 </p>
 
 ## Gradient Studio
