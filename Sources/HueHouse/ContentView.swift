@@ -626,7 +626,7 @@ private struct GradientControlPanel: View {
                 Button {
                     isImportingCSSGradient = true
                 } label: {
-                    Label("Import CSS Gradient", systemImage: "square.and.arrow.down")
+                    Label("Import Gradient", systemImage: "square.and.arrow.down")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(SiriGlassButtonStyle(tone: .quiet, fullWidth: true))
@@ -730,11 +730,12 @@ private struct ImportCSSGradientSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Import CSS Gradient")
+                Text("Import Gradient")
                     .font(.system(.title2, design: .rounded).weight(.semibold))
-                Text("Paste a CSS string like \u{201C}linear-gradient(90deg, #833AB4, #FD1D1D, #FCB045)\u{201D}.")
+                Text("Paste a CSS gradient or just type colors separated by commas \u{2014} \u{201C}red, blue, yellow\u{201D}, \u{201C}#833AB4, #FD1D1D, #FCB045\u{201D}, or \u{201C}linear-gradient(90deg, coral, indigo)\u{201D}.")
                     .font(.callout)
                     .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -747,7 +748,7 @@ private struct ImportCSSGradientSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("CSS gradient")
+                Text("Colors or CSS gradient")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(HueTheme.secondaryText(colorScheme))
                 TextEditor(text: $cssInput)
@@ -784,7 +785,7 @@ private struct ImportCSSGradientSheet: View {
                         .font(.callout)
                         .foregroundStyle(.orange)
                 } else {
-                    Text("Paste a gradient above to see a preview.")
+                    Text("Type a list of colors or paste a gradient above to see a preview.")
                         .font(.callout)
                         .foregroundStyle(HueTheme.tertiaryText(colorScheme))
                 }

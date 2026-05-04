@@ -3,21 +3,29 @@ import Foundation
 enum HueCSSGradientParseError: LocalizedError {
     case empty
     case noColors
+    case unknownColor(String)
 
     var errorDescription: String? {
         switch self {
         case .empty:
-            "Paste a CSS gradient like \u{201C}linear-gradient(90deg, #ff0080, #ffd700)\u{201D}."
+            "Type a list of colors like \u{201C}red, blue, yellow\u{201D} or paste a CSS gradient."
         case .noColors:
-            "Couldn\u{2019}t find any colors in that gradient string."
+            "Couldn\u{2019}t find any colors to import."
+        case .unknownColor(let token):
+            "\u{201C}\(token)\u{201D} isn\u{2019}t a recognized color. Use a name (red, coral, indigo), hex (#ff0080), or rgba(...)."
         }
     }
 }
 
-/// Parses CSS `linear-gradient` / `radial-gradient` / `conic-gradient` strings
-/// into the bridge's RGB→xy gradient color format. Direction tokens (`90deg`,
-/// `to right`, etc.) and stop positions (`50%`) are accepted but discarded —
-/// Hue's gradient API only consumes the ordered color list.
+/// Parses two flavors of palette input:
+///
+/// 1. A CSS gradient function — `linear-gradient(...)`, `radial-gradient(...)`,
+///    or `conic-gradient(...)`. Direction tokens (`90deg`, `to right`) and
+///    stop positions (`50%`) are accepted but discarded; Hue only consumes
+///    the ordered color list.
+/// 2. A plain comma-separated color list — `red, blue, yellow` or
+///    `#ff0080, #ffd700, hotpink`. Every comma-separated token must resolve
+///    to a color or parsing fails loudly so the user catches typos.
 enum HueCSSGradient {
     static func parse(_ input: String) throws -> [HueGradientColor] {
         let cleaned = input
@@ -26,8 +34,14 @@ enum HueCSSGradient {
 
         guard !cleaned.isEmpty else { throw HueCSSGradientParseError.empty }
 
+        let lower = cleaned.lowercased()
+        let isGradientFunction = lower.hasPrefix("linear-gradient(")
+            || lower.hasPrefix("radial-gradient(")
+            || lower.hasPrefix("conic-gradient(")
+
         let body: String
-        if let openParen = cleaned.firstIndex(of: "("),
+        if isGradientFunction,
+           let openParen = cleaned.firstIndex(of: "("),
            let closeParen = cleaned.lastIndex(of: ")"),
            openParen < closeParen {
             body = String(cleaned[cleaned.index(after: openParen)..<closeParen])
@@ -37,13 +51,22 @@ enum HueCSSGradient {
 
         let parts = splitTopLevelCommas(body)
         var colors: [HueGradientColor] = []
-        for part in parts {
+        for (index, part) in parts.enumerated() {
             let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { continue }
+
             if let color = parseColorStop(trimmed) {
                 colors.append(color)
+                continue
             }
-            // First token may be the direction ("90deg", "to right") — skipped silently.
+
+            // For a CSS gradient, the first part may be a direction token
+            // ("90deg", "to right") — silently skip. For a plain list, every
+            // entry must be a real color, so fail loudly on unknowns.
+            if isGradientFunction && index == 0 {
+                continue
+            }
+            throw HueCSSGradientParseError.unknownColor(trimmed)
         }
 
         guard !colors.isEmpty else { throw HueCSSGradientParseError.noColors }

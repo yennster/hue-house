@@ -54,10 +54,11 @@ final class HueStore: ObservableObject {
         let parsedColors = try HueCSSGradient.parse(css)
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedTitle = trimmedTitle.isEmpty ? defaultCustomTitle() : trimmedTitle
+        let countLabel = parsedColors.count == 1 ? "1 color" : "\(parsedColors.count) colors"
         let preset = HueGradientPreset(
             id: "custom-\(UUID().uuidString)",
             title: resolvedTitle,
-            subtitle: "Imported · \(parsedColors.count) stops",
+            subtitle: "Imported · \(countLabel)",
             brightness: 78,
             fallbackMirek: 300,
             colors: parsedColors,
