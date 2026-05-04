@@ -904,6 +904,12 @@ private struct LightRow: View {
     let light: HueLight
 
     @State private var brightness: Double = 100
+    @State private var redChannel: Double = 255
+    @State private var greenChannel: Double = 255
+    @State private var blueChannel: Double = 255
+    @State private var alphaPercent: Double = 100
+    @State private var isColorPopoverVisible = false
+    @State private var hasSyncedColor = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -963,15 +969,206 @@ private struct LightRow: View {
                     .disabled(!light.canApply(preset) || store.isWorking)
                     .buttonStyle(SiriGlassButtonStyle(tone: .quiet, compact: true))
                 }
+
+                Spacer(minLength: 0)
+
+                if light.supportsColor {
+                    Button {
+                        isColorPopoverVisible.toggle()
+                    } label: {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(swatchColor)
+                            .frame(width: 30, height: 22)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(HueTheme.hairline(colorScheme, opacity: 0.35), lineWidth: 0.75)
+                            )
+                            .overlay(
+                                Image(systemName: "eyedropper")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.75))
+                                    .shadow(color: .black.opacity(0.4), radius: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help("Pick a custom color")
+                    .disabled(store.isWorking)
+                    .popover(isPresented: $isColorPopoverVisible, arrowEdge: .top) {
+                        RGBAColorPopover(
+                            red: $redChannel,
+                            green: $greenChannel,
+                            blue: $blueChannel,
+                            alphaPercent: $alphaPercent,
+                            onCommit: applyPickedColor
+                        )
+                    }
+                }
             }
         }
         .padding(14)
         .hueGlass(cornerRadius: 22, tint: HueTheme.glassTint(colorScheme, opacity: light.isOn ? 0.10 : 0.04), interactive: true)
         .onAppear {
             brightness = light.brightness
+            syncColorFromLight(force: true)
         }
         .onChange(of: light.brightness) { _, newValue in
             brightness = newValue
+            syncColorFromLight(force: false)
+        }
+        .onChange(of: light.color) { _, _ in
+            syncColorFromLight(force: false)
+        }
+        .onChange(of: light.isOn) { _, _ in
+            syncColorFromLight(force: false)
+        }
+    }
+
+    private var swatchColor: Color {
+        Color(
+            red: redChannel / 255,
+            green: greenChannel / 255,
+            blue: blueChannel / 255,
+            opacity: max(0.05, alphaPercent / 100)
+        )
+    }
+
+    /// Pulls the light's last-known xy chromaticity and brightness out of the
+    /// cached store and seeds the RGBA channels so the popover preview matches
+    /// what the bulb is actually doing right now. `force` re-syncs even if the
+    /// user has been editing — used on first appearance.
+    private func syncColorFromLight(force: Bool) {
+        guard !isColorPopoverVisible || force else { return }
+
+        if let xy = light.color?.xy {
+            let relative = max(0.05, light.brightness / 100)
+            let rgb = HueGradientColor.sRGB(fromXY: xy.x, y: xy.y, relativeBrightness: relative)
+            redChannel = rgb.red * 255
+            greenChannel = rgb.green * 255
+            blueChannel = rgb.blue * 255
+        } else if !hasSyncedColor {
+            redChannel = 255
+            greenChannel = 255
+            blueChannel = 255
+        }
+
+        alphaPercent = light.isOn ? max(1, min(100, light.brightness)) : 0
+        hasSyncedColor = true
+    }
+
+    private func applyPickedColor() {
+        let r = redChannel / 255
+        let g = greenChannel / 255
+        let b = blueChannel / 255
+        let alpha = alphaPercent
+        Task { await store.setLight(light.id, red: r, green: g, blue: b, alphaPercent: alpha) }
+    }
+}
+
+private struct RGBAColorPopover: View {
+    @Binding var red: Double
+    @Binding var green: Double
+    @Binding var blue: Double
+    /// Alpha represented as 0…100 (mapped to bulb brightness; 0 turns the bulb off).
+    @Binding var alphaPercent: Double
+    var onCommit: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var previewColor: Color {
+        Color(
+            red: red / 255,
+            green: green / 255,
+            blue: blue / 255,
+            opacity: max(0.05, alphaPercent / 100)
+        )
+    }
+
+    private var hexString: String {
+        String(
+            format: "#%02X%02X%02X%02X",
+            Int(red.rounded()),
+            Int(green.rounded()),
+            Int(blue.rounded()),
+            Int((alphaPercent / 100 * 255).rounded())
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                ZStack {
+                    // Checkerboard so the alpha channel is visually obvious.
+                    AlphaCheckerboard()
+                        .frame(width: 56, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(previewColor)
+                        .frame(width: 56, height: 36)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(HueTheme.hairline(colorScheme, opacity: 0.35), lineWidth: 0.75)
+                        )
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Current color")
+                        .font(.system(.callout, design: .rounded).weight(.semibold))
+                    Text(hexString)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                }
+                Spacer()
+            }
+
+            channelSlider("R", value: $red, range: 0...255, tint: .red)
+            channelSlider("G", value: $green, range: 0...255, tint: .green)
+            channelSlider("B", value: $blue, range: 0...255, tint: .blue)
+            channelSlider("A", value: $alphaPercent, range: 0...100, tint: .gray, suffix: "%")
+        }
+        .padding(16)
+        .frame(width: 280)
+    }
+
+    private func channelSlider(
+        _ label: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        tint: Color,
+        suffix: String = ""
+    ) -> some View {
+        HStack(spacing: 10) {
+            Text(label)
+                .font(.system(.callout, design: .rounded).weight(.semibold))
+                .frame(width: 14, alignment: .leading)
+                .foregroundStyle(HueTheme.secondaryText(colorScheme))
+
+            Slider(value: value, in: range, step: 1) { editing in
+                if !editing { onCommit() }
+            }
+            .tint(tint)
+
+            Text("\(Int(value.wrappedValue.rounded()))\(suffix)")
+                .font(.system(.callout, design: .monospaced))
+                .frame(width: 40, alignment: .trailing)
+                .foregroundStyle(HueTheme.secondaryText(colorScheme))
+        }
+    }
+}
+
+private struct AlphaCheckerboard: View {
+    var body: some View {
+        Canvas { context, size in
+            let tile: CGFloat = 6
+            let cols = Int((size.width / tile).rounded(.up))
+            let rows = Int((size.height / tile).rounded(.up))
+            for row in 0..<rows {
+                for col in 0..<cols {
+                    let isDark = (row + col).isMultiple(of: 2)
+                    let rect = CGRect(x: CGFloat(col) * tile, y: CGFloat(row) * tile, width: tile, height: tile)
+                    context.fill(
+                        Path(rect),
+                        with: .color(isDark ? Color.gray.opacity(0.22) : Color.gray.opacity(0.10))
+                    )
+                }
+            }
         }
     }
 }

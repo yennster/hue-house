@@ -311,6 +311,36 @@ struct HueGradientColor: Hashable, Sendable, Codable {
         )
     }
 
+    /// Inverse of `fromSRGB`: converts the bridge's CIE 1931 xy chromaticity back
+    /// into a display-ready sRGB triple. Useful for painting an in-app preview
+    /// of the bulb's current color. `relativeBrightness` (0…1) controls Y; pass
+    /// the cached dimming value if you want the swatch to reflect dimming too.
+    static func sRGB(fromXY x: Double, y: Double, relativeBrightness: Double = 1.0) -> (red: Double, green: Double, blue: Double) {
+        let safeY = max(0.0001, y)
+        let Y = max(0, min(1, relativeBrightness))
+        let X = (Y / safeY) * x
+        let Z = (Y / safeY) * (1 - x - y)
+
+        // sRGB → XYZ (D65) inverted.
+        let lr =  3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z
+        let lg = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z
+        let lb =  0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z
+
+        func gammaEncode(_ value: Double) -> Double {
+            let v = max(0, value)
+            if v <= 0.0031308 {
+                return 12.92 * v
+            }
+            return 1.055 * pow(v, 1.0 / 2.4) - 0.055
+        }
+
+        return (
+            red:   min(1, max(0, gammaEncode(lr))),
+            green: min(1, max(0, gammaEncode(lg))),
+            blue:  min(1, max(0, gammaEncode(lb)))
+        )
+    }
+
     static func mix(_ start: HueGradientColor, _ end: HueGradientColor, amount: Double) -> HueGradientColor {
         let t = min(1, max(0, amount))
         return HueGradientColor(

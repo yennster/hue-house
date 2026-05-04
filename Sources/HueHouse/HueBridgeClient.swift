@@ -237,6 +237,27 @@ final class HueBridgeClient: @unchecked Sendable {
         try await updateLight(id: id, payload: payload)
     }
 
+    /// Sets a light's color from an sRGB triple. Supplying brightness routes
+    /// the value into the same payload so the bridge applies both atomically.
+    func setLight(
+        id: String,
+        red: Double,
+        green: Double,
+        blue: Double,
+        brightness: Double? = nil
+    ) async throws {
+        let color = HueGradientColor.fromSRGB(red: red, green: green, blue: blue)
+        var object: [String: Any] = [
+            "on": ["on": true],
+            "color": ["xy": ["x": color.x, "y": color.y]]
+        ]
+        if let brightness {
+            object["dimming"] = ["brightness": min(100, max(1, brightness))]
+        }
+        let payload = try JSONSerialization.data(withJSONObject: object, options: [])
+        try await updateLight(id: id, payload: payload)
+    }
+
     func applyGradient(_ preset: HueGradientPreset, to light: HueLight, index: Int, total: Int) async throws {
         guard let payload = preset.payload(for: light, index: index, total: total) else {
             throw HueAppError.bridgeRejected("Could not build a gradient payload for \(light.name).")

@@ -187,13 +187,11 @@ final class HueStore: ObservableObject {
     }
 
     func setAllLights(on: Bool) async {
-        let lightIDs = lights.map(\.id)
+        let candidates = selectedGroupLights
         await run("Could not update all lights.") {
-            let client = try currentClient()
-            for id in lightIDs {
-                try await client.setLight(id: id, on: on)
+            try await self.runBatchUpdate(over: candidates) { client, light, _, _ in
+                try await client.setLight(id: light.id, on: on)
             }
-            try await refreshResourcesWithoutSpinner()
         }
     }
 
@@ -217,6 +215,48 @@ final class HueStore: ObservableObject {
         }
     }
 
+    /// Updates a light's color from sRGB components. `alphaPercent` (0…100) is
+    /// treated as the bulb's brightness; values <= 0 turn the bulb off rather
+    /// than rejecting the request (Hue requires brightness >= 1).
+    func setLight(
+        _ id: String,
+        red: Double,
+        green: Double,
+        blue: Double,
+        alphaPercent: Double? = nil
+    ) async {
+        await run("Could not update light color.") {
+            let client = try currentClient()
+
+            if let alphaPercent, alphaPercent <= 0 {
+                try await client.setLight(id: id, on: false)
+                updateCachedLight(id: id) { light in
+                    light.on = HueOnState(on: false)
+                }
+                return
+            }
+
+            try await client.setLight(
+                id: id,
+                red: red,
+                green: green,
+                blue: blue,
+                brightness: alphaPercent
+            )
+            let converted = HueGradientColor.fromSRGB(red: red, green: green, blue: blue)
+            updateCachedLight(id: id) { light in
+                light.on = HueOnState(on: true)
+                light.color = HueColor(xy: HueXY(x: converted.x, y: converted.y))
+                if let alphaPercent {
+                    light.dimming = HueDimming(
+                        brightness: max(1, min(100, alphaPercent)),
+                        minDimLevel: light.dimming?.minDimLevel
+                    )
+                }
+            }
+        }
+    }
+
     func applyPreset(_ preset: HuePreset, to id: String) async {
         guard preset != .none else { return }
         await run("Could not apply preset.") {
@@ -228,98 +268,99 @@ final class HueStore: ObservableObject {
 
     func applyPresetToAll(_ preset: HuePreset) async {
         guard preset != .none else { return }
-        let lightIDs = lights.map(\.id)
+        let candidates = lights
         await run("Could not apply preset to all lights.") {
-            let client = try currentClient()
-            for id in lightIDs {
-                try await client.applyPreset(preset, to: id)
+            try await self.runBatchUpdate(over: candidates) { client, light, _, _ in
+                try await client.applyPreset(preset, to: light.id)
             }
-            try await refreshResourcesWithoutSpinner()
         }
     }
 
     func applySelectedGradient() async {
-        let allCandidates = selectedGroupLights
-        let skipSnapshot = skippedLightIDs
-        let targetLights = allCandidates.filter { !skipSnapshot.contains($0.id) }
-        let previouslySkippedCount = allCandidates.count - targetLights.count
+        let candidates = selectedGroupLights
+        let groupName = selectedGroup.name
         let gradient = selectedGradient
 
         await run("Could not apply gradient.") {
-            guard !allCandidates.isEmpty else {
-                throw HueAppError.bridgeRejected("No lights were found in \(selectedGroup.name).")
+            guard !candidates.isEmpty else {
+                throw HueAppError.bridgeRejected("No lights were found in \(groupName).")
             }
-
-            guard !targetLights.isEmpty else {
-                throw HueAppError.bridgeRejected(
-                    "All lights in \(selectedGroup.name) were skipped earlier this session. Reset the skip list to try again."
-                )
+            try await self.runBatchUpdate(over: candidates) { client, light, index, total in
+                try await client.applyGradient(gradient, to: light, index: index, total: total)
             }
+        }
+    }
 
-            let client = try currentClient()
+    /// Shared driver for "act on every (or every selected) light" flows. Lights
+    /// already in `skippedLightIDs` are filtered out, the operation runs with
+    /// capped concurrency, per-light failures are collected and added to the
+    /// skip list, and an alert is raised only for *new* failures.
+    private func runBatchUpdate(
+        over candidates: [HueLight],
+        maxConcurrent: Int = 4,
+        operation: @escaping @Sendable (HueBridgeClient, HueLight, Int, Int) async throws -> Void
+    ) async throws {
+        guard !candidates.isEmpty else { return }
 
-            // The Hue Bridge accepts ~10 writes/sec. Cap concurrency to stay
-            // under that ceiling and rely on the client's automatic 429 retry
-            // for transient overruns.
-            let maxConcurrent = min(4, targetLights.count)
-            let total = targetLights.count
+        let skipSnapshot = skippedLightIDs
+        let targetLights = candidates.filter { !skipSnapshot.contains($0.id) }
+        let previouslySkippedCount = candidates.count - targetLights.count
 
-            let failures: [(HueLight, Error)] = await withTaskGroup(
-                of: (HueLight, Error?).self
-            ) { group in
-                var iterator = targetLights.enumerated().makeIterator()
-                var inFlight = 0
+        guard !targetLights.isEmpty else {
+            throw HueAppError.bridgeRejected(
+                "All target lights were skipped earlier this session. Reset the skip list to try again."
+            )
+        }
 
-                func enqueueNext() {
-                    guard let next = iterator.next() else { return }
-                    inFlight += 1
-                    group.addTask {
-                        do {
-                            try await client.applyGradient(
-                                gradient,
-                                to: next.element,
-                                index: next.offset,
-                                total: total
-                            )
-                            return (next.element, nil)
-                        } catch {
-                            return (next.element, error)
-                        }
+        let client = try currentClient()
+        let total = targetLights.count
+        let concurrent = min(maxConcurrent, total)
+
+        let failures: [(HueLight, Error)] = await withTaskGroup(
+            of: (HueLight, Error?).self
+        ) { group in
+            var iterator = targetLights.enumerated().makeIterator()
+            var inFlight = 0
+
+            func enqueueNext() {
+                guard let next = iterator.next() else { return }
+                inFlight += 1
+                group.addTask {
+                    do {
+                        try await operation(client, next.element, next.offset, total)
+                        return (next.element, nil)
+                    } catch {
+                        return (next.element, error)
                     }
                 }
+            }
 
-                for _ in 0..<maxConcurrent { enqueueNext() }
+            for _ in 0..<concurrent { enqueueNext() }
 
-                var collected: [(HueLight, Error)] = []
-                while inFlight > 0, let result = await group.next() {
-                    inFlight -= 1
-                    if let error = result.1 {
-                        collected.append((result.0, error))
-                    }
-                    enqueueNext()
+            var collected: [(HueLight, Error)] = []
+            while inFlight > 0, let result = await group.next() {
+                inFlight -= 1
+                if let error = result.1 {
+                    collected.append((result.0, error))
                 }
-                return collected
+                enqueueNext()
             }
+            return collected
+        }
 
-            // Remember failures for the rest of the session so the next gradient
-            // apply doesn't keep hammering bulbs the bridge keeps refusing.
-            for (light, _) in failures {
-                skippedLightIDs.insert(light.id)
-            }
+        for (light, _) in failures {
+            skippedLightIDs.insert(light.id)
+        }
 
-            try await refreshResourcesWithoutSpinner()
+        try await refreshResourcesWithoutSpinner()
 
-            // Only surface an alert for new failures. Lights that were already
-            // skipped earlier in this session stay quiet — the inline "skipped
-            // this session" badge in the gradient panel is enough.
-            if !failures.isEmpty {
-                throw HueAppError.partialGradient(
-                    failed: failures.map(\.0.name),
-                    total: allCandidates.count,
-                    underlying: failures.first?.1,
-                    previouslySkipped: previouslySkippedCount
-                )
-            }
+        if !failures.isEmpty {
+            throw HueAppError.partialGradient(
+                failed: failures.map(\.0.name),
+                total: candidates.count,
+                underlying: failures.first?.1,
+                previouslySkipped: previouslySkippedCount
+            )
         }
     }
 

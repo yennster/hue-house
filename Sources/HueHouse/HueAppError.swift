@@ -72,7 +72,7 @@ enum HueAppError: LocalizedError {
     private static func partialGradientMessage(
         failed: [String],
         total: Int,
-        underlying: Error?,
+        underlying _: Error?,
         previouslySkipped: Int
     ) -> String {
         let succeeded = total - failed.count - previouslySkipped
@@ -88,22 +88,10 @@ enum HueAppError: LocalizedError {
             }
         }()
 
-        var pieces: [String] = ["Updated \(succeeded) of \(total) lights."]
-
-        if !names.isEmpty {
-            pieces.append("Couldn\u{2019}t reach \(names) — they\u{2019}ll be skipped for the rest of this session.")
+        if names.isEmpty {
+            return "Updated \(succeeded) of \(total) lights."
         }
-
-        if previouslySkipped > 0 {
-            let suffix = previouslySkipped == 1 ? "light was" : "lights were"
-            pieces.append("\(previouslySkipped) \(suffix) skipped from earlier failures this session.")
-        }
-
-        if let underlying, case let HueAppError.httpStatus(status) = underlying, status == 429 {
-            pieces.append("The bridge rate-limited some requests.")
-        }
-
-        return pieces.joined(separator: " ")
+        return "Updated \(succeeded) of \(total). Skipping \(names) this session."
     }
 
     /// Capitalizes the first letter and ensures the message ends with terminal punctuation.
