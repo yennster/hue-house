@@ -911,6 +911,14 @@ private struct LightRow: View {
     @State private var isColorPopoverVisible = false
     @State private var hasSyncedColor = false
 
+    private var isUnreachable: Bool {
+        store.skippedLightIDs.contains(light.id)
+    }
+
+    private var controlsDisabled: Bool {
+        isUnreachable || store.isWorking
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
@@ -920,8 +928,20 @@ private struct LightRow: View {
                     .frame(width: 30)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(light.name)
-                        .font(.system(.headline, design: .rounded))
+                    HStack(spacing: 6) {
+                        Text(light.name)
+                            .font(.system(.headline, design: .rounded))
+                        if isUnreachable {
+                            Text("Unreachable")
+                                .font(.system(.caption2, design: .rounded).weight(.semibold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(Color.orange.opacity(0.22))
+                                )
+                                .foregroundStyle(.orange)
+                        }
+                    }
                     Text(light.detailLine)
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(HueTheme.secondaryText(colorScheme))
@@ -938,7 +958,7 @@ private struct LightRow: View {
                 .toggleStyle(.switch)
                 .tint(HueTheme.controlTint(colorScheme))
                 .labelsHidden()
-                .disabled(store.isWorking)
+                .disabled(controlsDisabled)
             }
 
             HStack(spacing: 12) {
@@ -950,7 +970,7 @@ private struct LightRow: View {
                         Task { await store.setLight(light.id, brightness: brightness) }
                     }
                 }
-                .disabled(!light.supportsDimming || store.isWorking)
+                .disabled(!light.supportsDimming || controlsDisabled)
                 .tint(HueTheme.controlTint(colorScheme))
 
                 Text("\(Int(brightness.rounded()))%")
@@ -966,7 +986,7 @@ private struct LightRow: View {
                     } label: {
                         Label(preset.title, systemImage: preset.systemImage)
                     }
-                    .disabled(!light.canApply(preset) || store.isWorking)
+                    .disabled(!light.canApply(preset) || controlsDisabled)
                     .buttonStyle(SiriGlassButtonStyle(tone: .quiet, compact: true))
                 }
 
@@ -992,7 +1012,7 @@ private struct LightRow: View {
                     }
                     .buttonStyle(.plain)
                     .help("Pick a custom color")
-                    .disabled(store.isWorking)
+                    .disabled(controlsDisabled)
                     .popover(isPresented: $isColorPopoverVisible, arrowEdge: .top) {
                         RGBAColorPopover(
                             red: $redChannel,
@@ -1007,6 +1027,7 @@ private struct LightRow: View {
         }
         .padding(14)
         .hueGlass(cornerRadius: 22, tint: HueTheme.glassTint(colorScheme, opacity: light.isOn ? 0.10 : 0.04), interactive: true)
+        .opacity(isUnreachable ? 0.55 : 1.0)
         .onAppear {
             brightness = light.brightness
             syncColorFromLight(force: true)

@@ -196,20 +196,20 @@ final class HueStore: ObservableObject {
     }
 
     func setLight(_ id: String, on: Bool) async {
-        await run("Could not update the light.") {
-            let client = try currentClient()
+        await runSingleLightUpdate(on: id) {
+            let client = try self.currentClient()
             try await client.setLight(id: id, on: on)
-            updateCachedLight(id: id) { light in
+            self.updateCachedLight(id: id) { light in
                 light.on = HueOnState(on: on)
             }
         }
     }
 
     func setLight(_ id: String, brightness: Double) async {
-        await run("Could not update brightness.") {
-            let client = try currentClient()
+        await runSingleLightUpdate(on: id) {
+            let client = try self.currentClient()
             try await client.setLight(id: id, brightness: brightness)
-            updateCachedLight(id: id) { light in
+            self.updateCachedLight(id: id) { light in
                 light.dimming = HueDimming(brightness: brightness, minDimLevel: light.dimming?.minDimLevel)
             }
         }
@@ -225,12 +225,12 @@ final class HueStore: ObservableObject {
         blue: Double,
         alphaPercent: Double? = nil
     ) async {
-        await run("Could not update light color.") {
-            let client = try currentClient()
+        await runSingleLightUpdate(on: id) {
+            let client = try self.currentClient()
 
             if let alphaPercent, alphaPercent <= 0 {
                 try await client.setLight(id: id, on: false)
-                updateCachedLight(id: id) { light in
+                self.updateCachedLight(id: id) { light in
                     light.on = HueOnState(on: false)
                 }
                 return
@@ -244,7 +244,7 @@ final class HueStore: ObservableObject {
                 brightness: alphaPercent
             )
             let converted = HueGradientColor.fromSRGB(red: red, green: green, blue: blue)
-            updateCachedLight(id: id) { light in
+            self.updateCachedLight(id: id) { light in
                 light.on = HueOnState(on: true)
                 light.color = HueColor(xy: HueXY(x: converted.x, y: converted.y))
                 if let alphaPercent {
@@ -259,10 +259,10 @@ final class HueStore: ObservableObject {
 
     func applyPreset(_ preset: HuePreset, to id: String) async {
         guard preset != .none else { return }
-        await run("Could not apply preset.") {
-            let client = try currentClient()
+        await runSingleLightUpdate(on: id) {
+            let client = try self.currentClient()
             try await client.applyPreset(preset, to: id)
-            try await refreshResourcesWithoutSpinner()
+            try await self.refreshResourcesWithoutSpinner()
         }
     }
 
@@ -367,6 +367,31 @@ final class HueStore: ObservableObject {
     /// Clears the in-memory skip list so previously-failing lights are tried again.
     func resetSkippedLights() {
         skippedLightIDs.removeAll()
+    }
+
+    /// Runs a single-light operation. If the light is already in the session
+    /// skip list the call is a silent no-op. On error the light is added to
+    /// the skip list and a brief alert names the bulb instead of dumping the
+    /// raw bridge error string.
+    private func runSingleLightUpdate(
+        on lightID: String,
+        operation: () async throws -> Void
+    ) async {
+        guard !skippedLightIDs.contains(lightID) else { return }
+
+        isWorking = true
+        defer { isWorking = false }
+
+        do {
+            try await operation()
+        } catch {
+            skippedLightIDs.insert(lightID)
+            let lightName = lights.first(where: { $0.id == lightID })?.name ?? "this light"
+            errorAlert = HueErrorAlert(
+                title: "\(lightName) is unreachable.",
+                message: "Skipping it for the rest of this session."
+            )
+        }
     }
 
     func forgetBridge() {

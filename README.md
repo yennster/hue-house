@@ -26,13 +26,15 @@
   <span> - </span>
   <a href="#install">Install</a>
   <span> - </span>
-  <a href="#pair-your-bridge">Pair</a>
+  <a href="#pair-your-bridge">Pair your bridge</a>
   <span> - </span>
   <a href="#gradient-studio">Gradients</a>
   <span> - </span>
   <a href="#siri-and-shortcuts">Siri</a>
   <span> - </span>
   <a href="#packaging">Packaging</a>
+  <span> - </span>
+  <a href="#support">Support</a>
 </p>
 
 ## Highlights
