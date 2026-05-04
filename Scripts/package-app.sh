@@ -92,4 +92,12 @@ else
     echo "Skipped App Intents metadata generation; full Xcode was not found."
 fi
 
+
+# Ad-hoc sign the bundle. Without any signature, recent macOS rejects the app
+# outright with a misleading "damaged" Gatekeeper warning when downloaded.
+# Ad-hoc signing (`-` as the identity) satisfies the unsigned-binary check;
+# users still see the "unidentified developer" prompt and need right-click →
+# Open the first time, but the bundle launches.
+codesign --force --deep --sign - "$APP_DIR"
+
 echo "Created $APP_DIR"
