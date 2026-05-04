@@ -21,6 +21,11 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 cp "$ROOT_DIR/.build/release/HueHouse" "$MACOS_DIR/HueHouse"
 cp "$ROOT_DIR/Packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
 
+if [ ! -f "$ROOT_DIR/Packaging/AppIcon.icns" ]; then
+    swift "$ROOT_DIR/Scripts/generate-icon.swift" >/dev/null
+fi
+cp "$ROOT_DIR/Packaging/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+
 if [ -x "$APPINTENTS_PROCESSOR" ] && [ -x "$XCODEBUILD" ]; then
     DERIVED_DATA_DIR="$ROOT_DIR/.build/xcode-derived"
     APPINTENTS_DIR="$ROOT_DIR/.build/appintents"

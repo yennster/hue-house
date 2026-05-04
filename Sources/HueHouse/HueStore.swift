@@ -11,7 +11,7 @@ final class HueStore: ObservableObject {
     @Published var selectedGroupID = HueLightGroup.allLightsID
     @Published var selectedGradientID = HueGradientPreset.fallback.id
     @Published var isWorking = false
-    @Published var errorMessage: String?
+    @Published var errorAlert: HueErrorAlert?
     @Published var hasAttemptedDiscovery = false
 
     var localDiscoveryDescription: String {
@@ -271,7 +271,17 @@ final class HueStore: ObservableObject {
         do {
             try await operation()
         } catch {
-            errorMessage = HueAppError.message(for: error, fallback: fallbackMessage)
+            let detail = HueAppError.detail(for: error)
+            errorAlert = HueErrorAlert(
+                title: HueAppError.formatted(fallbackMessage),
+                message: detail
+            )
         }
     }
+}
+
+struct HueErrorAlert: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let message: String
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var store: HueStore
     @Environment(\.colorScheme) private var colorScheme
+    @State private var selectedTab: HueTab = .lights
 
     var body: some View {
         ZStack {
@@ -12,162 +13,140 @@ struct ContentView: View {
                 HeaderView()
 
                 if store.canControlLights {
-                    LightControlView()
-                } else {
-                    PairingView()
+                    HueTabBar(selection: $selectedTab, badges: tabBadges, tabs: visibleTabs)
                 }
+
+                Group {
+                    switch effectiveTab {
+                    case .lights:
+                        LightControlView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .bridge:
+                        BridgeTabView()
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .transition(.opacity)
             }
             .padding(18)
         }
         .foregroundStyle(HueTheme.primaryText(colorScheme))
         .tint(HueTheme.controlTint(colorScheme))
         .symbolRenderingMode(.monochrome)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                HueTopToolbarMenu()
-                    .environmentObject(store)
-
-                Button {
-                    Task { await store.refreshLights() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .disabled(!store.canControlLights || store.isWorking)
-                .buttonStyle(SiriGlassButtonStyle(tone: .quiet, compact: true))
-            }
-        }
-        .alert("Hue House", isPresented: Binding(
-            get: { store.errorMessage != nil },
-            set: { if !$0 { store.errorMessage = nil } }
-        )) {
+        .alert(
+            store.errorAlert?.title ?? "",
+            isPresented: Binding(
+                get: { store.errorAlert != nil },
+                set: { if !$0 { store.errorAlert = nil } }
+            ),
+            presenting: store.errorAlert
+        ) { _ in
             Button("OK", role: .cancel) {
-                store.errorMessage = nil
+                store.errorAlert = nil
             }
-        } message: {
-            Text(store.errorMessage ?? "")
+        } message: { alert in
+            Text(alert.message)
+        }
+        .onChange(of: store.canControlLights) { _, canControl in
+            if !canControl { selectedTab = .bridge }
+        }
+        .onAppear {
+            if !store.canControlLights { selectedTab = .bridge }
+        }
+        .animation(.snappy(duration: 0.18), value: effectiveTab)
+    }
+
+    private var effectiveTab: HueTab {
+        store.canControlLights ? selectedTab : .bridge
+    }
+
+    private var visibleTabs: [HueTab] {
+        store.canControlLights ? HueTab.allCases : [.bridge]
+    }
+
+    private var tabBadges: [HueTab: String] {
+        var badges: [HueTab: String] = [:]
+        if store.canControlLights {
+            badges[.lights] = "\(store.lights.count)"
+        }
+        return badges
+    }
+}
+
+enum HueTab: Hashable, CaseIterable {
+    case lights, bridge
+
+    var title: String {
+        switch self {
+        case .lights: return "Lights"
+        case .bridge: return "Bridge"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .lights: return "lightbulb.2.fill"
+        case .bridge: return "wifi.router.fill"
         }
     }
 }
 
-private struct HueTopToolbarMenu: View {
-    @EnvironmentObject private var store: HueStore
-    @AppStorage(HueAppStorage.appearanceModeKey) private var appearanceModeRawValue = HueAppearanceMode.system.rawValue
-
-    var body: some View {
-        Menu {
-            Section("Target") {
-                Picker("Room or Zone", selection: $store.selectedGroupID) {
-                    ForEach(store.availableGroups) { group in
-                        Label(
-                            "\(group.name) · \(store.lightCount(in: group))",
-                            systemImage: group.systemImage
-                        )
-                        .tag(group.id)
-                    }
-                }
-            }
-
-            Section("Gradients") {
-                ForEach(HueGradientPreset.all) { preset in
-                    Button {
-                        store.selectedGradientID = preset.id
-                        Task { await store.applySelectedGradient() }
-                    } label: {
-                        Label(
-                            preset.title,
-                            systemImage: store.selectedGradientID == preset.id ? "checkmark.circle.fill" : "sparkles"
-                        )
-                    }
-                    .disabled(!store.canControlLights || store.isWorking || store.selectedGroupLights.isEmpty)
-                }
-
-                Button {
-                    Task { await store.applySelectedGradient() }
-                } label: {
-                    Label("Apply \(store.selectedGradient.title)", systemImage: "wand.and.stars")
-                }
-                .disabled(!store.canControlLights || store.isWorking || store.selectedGroupLights.isEmpty)
-            }
-
-            Section("Quick Color") {
-                ForEach(HuePreset.rowPresets) { preset in
-                    Button {
-                        Task { await store.applyPresetToAll(preset) }
-                    } label: {
-                        Label(preset.title, systemImage: preset.systemImage)
-                    }
-                    .disabled(!store.canControlLights || store.isWorking || store.lights.isEmpty)
-                }
-            }
-
-            Section("Appearance") {
-                Picker("Mode", selection: $appearanceModeRawValue) {
-                    ForEach(HueAppearanceMode.allCases) { mode in
-                        Label(mode.title, systemImage: mode.systemImage)
-                            .tag(mode.rawValue)
-                    }
-                }
-            }
-
-            Section("Bridge") {
-                Button {
-                    Task { await store.discoverBridges() }
-                } label: {
-                    Label("Discover Bridge", systemImage: "dot.radiowaves.left.and.right")
-                }
-                .disabled(store.isWorking)
-
-                Button {
-                    Task { await store.pairBridge() }
-                } label: {
-                    Label("Pair Bridge", systemImage: "link")
-                }
-                .disabled(!store.canAttemptPairing || store.isWorking)
-
-                Button {
-                    Task { await store.refreshLights() }
-                } label: {
-                    Label("Refresh Lights", systemImage: "arrow.clockwise")
-                }
-                .disabled(!store.canControlLights || store.isWorking)
-
-                Button(role: .destructive) {
-                    store.forgetBridge()
-                } label: {
-                    Label("Forget Bridge", systemImage: "xmark.circle")
-                }
-                .disabled(!store.canControlLights || store.isWorking)
-            }
-        } label: {
-            HStack(spacing: 8) {
-                ToolbarPaletteGlyph(colors: store.selectedGradient.colors)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Hue Controls")
-                        .font(.system(.caption, design: .rounded).weight(.semibold))
-                    Text(store.canControlLights ? store.selectedGroup.name : "Bridge Setup")
-                        .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .menuStyle(.borderlessButton)
-        .disabled(store.isWorking && !store.canControlLights)
-    }
-}
-
-private struct ToolbarPaletteGlyph: View {
-    let colors: [HueGradientColor]
+private struct HueTabBar: View {
+    @Binding var selection: HueTab
+    let badges: [HueTab: String]
+    let tabs: [HueTab]
     @Environment(\.colorScheme) private var colorScheme
+    @Namespace private var indicator
 
     var body: some View {
-        HuePaletteStrip(colors: colors)
-            .frame(width: 28, height: 18)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(HueTheme.hairline(colorScheme, opacity: 0.28), lineWidth: 0.75)
+        HStack(spacing: 4) {
+            ForEach(tabs, id: \.self) { tab in
+                Button {
+                    withAnimation(.snappy(duration: 0.22)) {
+                        selection = tab
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: tab.systemImage)
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(tab.title)
+                            .font(.system(.callout, design: .rounded).weight(.semibold))
+                        if let badge = badges[tab] {
+                            Text(badge)
+                                .font(.system(.caption2, design: .rounded).weight(.semibold))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(HueTheme.primaryText(colorScheme).opacity(selection == tab ? 0.18 : 0.10))
+                                )
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(selection == tab ? HueTheme.primaryText(colorScheme) : HueTheme.secondaryText(colorScheme))
+                    .background {
+                        if selection == tab {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(HueTheme.primaryText(colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.08))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(HueTheme.hairline(colorScheme, opacity: 0.22), lineWidth: 0.75)
+                                }
+                                .matchedGeometryEffect(id: "selectedTab", in: indicator)
+                        }
+                    }
+                    .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
+        }
+        .padding(4)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(HueTheme.hairline(colorScheme, opacity: 0.18), lineWidth: 0.75)
+        }
     }
 }
 
@@ -192,8 +171,6 @@ private struct HeaderView: View {
 
             Spacer()
 
-            AppearancePicker(selection: $appearanceModeRawValue)
-
             if store.isWorking {
                 ProgressView()
                     .controlSize(.small)
@@ -205,18 +182,14 @@ private struct HeaderView: View {
                     Task { await store.refreshLights() }
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
+                        .labelStyle(.iconOnly)
                 }
+                .help("Refresh lights")
                 .disabled(store.isWorking)
-                .buttonStyle(SiriGlassButtonStyle(tone: .standard, compact: true))
-
-                Button(role: .destructive) {
-                    store.forgetBridge()
-                } label: {
-                    Label("Forget", systemImage: "xmark.circle")
-                }
-                .disabled(store.isWorking)
-                .buttonStyle(SiriGlassButtonStyle(tone: .destructive, compact: true))
+                .buttonStyle(SiriGlassButtonStyle(tone: .quiet, compact: true))
             }
+
+            AppearancePicker(selection: $appearanceModeRawValue)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -276,13 +249,91 @@ private struct AppearancePicker: View {
     }
 }
 
+private struct BridgeTabView: View {
+    @EnvironmentObject private var store: HueStore
+
+    var body: some View {
+        if store.canControlLights {
+            BridgeDetailView()
+        } else {
+            PairingView()
+        }
+    }
+}
+
+private struct BridgeDetailView: View {
+    @EnvironmentObject private var store: HueStore
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 14) {
+                SiriAppGlyph(systemImage: "wifi.router.fill")
+                    .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Connected")
+                        .font(.system(.title2, design: .rounded).weight(.semibold))
+                    Text(HueBridgeClient.normalizedHost(from: store.bridgeHost))
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                    Text(store.statusLine)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(HueTheme.tertiaryText(colorScheme))
+                        .lineLimit(2)
+                }
+
+                Spacer()
+            }
+
+            Divider().overlay(HueTheme.hairline(colorScheme, opacity: 0.16))
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Bridge Actions")
+                    .siriSectionTitle()
+
+                HStack(spacing: 10) {
+                    Button {
+                        Task { await store.refreshLights() }
+                    } label: {
+                        Label("Refresh Lights", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(store.isWorking)
+                    .buttonStyle(SiriGlassButtonStyle(tone: .standard))
+
+                    Button {
+                        Task { await store.discoverBridges() }
+                    } label: {
+                        Label("Re-Discover", systemImage: "dot.radiowaves.left.and.right")
+                    }
+                    .disabled(store.isWorking)
+                    .buttonStyle(SiriGlassButtonStyle(tone: .quiet))
+
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        store.forgetBridge()
+                    } label: {
+                        Label("Forget Bridge", systemImage: "xmark.circle")
+                    }
+                    .disabled(store.isWorking)
+                    .buttonStyle(SiriGlassButtonStyle(tone: .destructive))
+                }
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .hueGlass(cornerRadius: 30, tint: HueTheme.glassTint(colorScheme, opacity: 0.06))
+    }
+}
+
 private struct PairingView: View {
     @EnvironmentObject private var store: HueStore
     @Environment(\.colorScheme) private var colorScheme
     @State private var isManualIPAddressVisible = false
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(alignment: .top, spacing: 18) {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Connect Your Bridge")
@@ -355,8 +406,6 @@ private struct PairingView: View {
                         .font(.system(.callout, design: .rounded).weight(.semibold))
                 }
                 .foregroundStyle(HueTheme.primaryText(colorScheme))
-
-                Spacer()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -375,7 +424,8 @@ private struct PairingView: View {
                                 .font(.system(.callout, design: .rounded))
                                 .foregroundStyle(HueTheme.secondaryText(colorScheme))
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
                     } else {
                         ContentUnavailableView(
                             store.hasAttemptedDiscovery ? "No Bridge Found" : "Ready to Search",
@@ -383,7 +433,8 @@ private struct PairingView: View {
                             description: Text(store.hasAttemptedDiscovery ? "Make sure this Mac is on the same Wi-Fi network as the Hue Bridge." : "Hue House will search automatically from this Mac's current network.")
                         )
                         .foregroundStyle(HueTheme.secondaryText(colorScheme))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
                     }
                 } else {
                     ForEach(store.discoveredBridges) { bridge in

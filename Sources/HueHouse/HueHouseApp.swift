@@ -14,11 +14,12 @@ struct HueHouseApp: App {
             ContentView()
                 .environmentObject(store)
                 .preferredColorScheme(appearanceMode.colorScheme)
-                .frame(minWidth: 760, minHeight: 540)
+                .frame(minWidth: 720, minHeight: 480)
                 .task {
                     await store.refreshLightsIfReady()
                 }
         }
+        .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(after: .appInfo) {
@@ -35,6 +36,16 @@ struct HueHouseApp: App {
                 .disabled(!store.canControlLights)
             }
         }
+
+        MenuBarExtra {
+            HueMenuBarView()
+                .environmentObject(store)
+                .preferredColorScheme(appearanceMode.colorScheme)
+        } label: {
+            HueMenuBarLabel()
+                .environmentObject(store)
+        }
+        .menuBarExtraStyle(.window)
     }
 
     private var appearanceMode: HueAppearanceMode {
