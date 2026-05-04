@@ -33,6 +33,7 @@ struct ContentView: View {
         .foregroundStyle(HueTheme.primaryText(colorScheme))
         .tint(HueTheme.controlTint(colorScheme))
         .symbolRenderingMode(.monochrome)
+        .textSelection(.disabled)
         .alert(
             store.errorAlert?.title ?? "",
             isPresented: Binding(
@@ -139,6 +140,7 @@ private struct HueTabBar: View {
                     .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .pointerStyleArrow()
             }
         }
         .padding(4)
@@ -218,6 +220,7 @@ private struct AppearancePicker: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .pointerStyleArrow()
                 .help("\(mode.title) appearance")
                 .accessibilityLabel("\(mode.title) appearance")
             }
@@ -407,6 +410,7 @@ private struct PairingView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .pointerStyleArrow()
                     .foregroundStyle(HueTheme.primaryText(colorScheme))
 
                     if isManualIPAddressVisible {
@@ -478,6 +482,7 @@ private struct PairingView: View {
                             .hueGlass(cornerRadius: 18, tint: HueTheme.glassTint(colorScheme, opacity: 0.08), interactive: true)
                         }
                         .buttonStyle(.plain)
+                        .pointerStyleArrow()
                     }
                 }
             }

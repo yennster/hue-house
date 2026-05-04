@@ -187,22 +187,58 @@ final class HueStore: ObservableObject {
 
             let client = try currentClient()
 
-            try await withThrowingTaskGroup(of: Void.self) { taskGroup in
-                for (index, light) in targetLights.enumerated() {
-                    taskGroup.addTask {
-                        try await client.applyGradient(
-                            gradient,
-                            to: light,
-                            index: index,
-                            total: targetLights.count
-                        )
+            // The Hue Bridge accepts ~10 writes/sec. Cap concurrency to stay
+            // under that ceiling and rely on the client's automatic 429 retry
+            // for transient overruns.
+            let maxConcurrent = min(4, targetLights.count)
+            let total = targetLights.count
+
+            let failures: [(HueLight, Error)] = await withTaskGroup(
+                of: (HueLight, Error?).self
+            ) { group in
+                var iterator = targetLights.enumerated().makeIterator()
+                var inFlight = 0
+
+                func enqueueNext() {
+                    guard let next = iterator.next() else { return }
+                    inFlight += 1
+                    group.addTask {
+                        do {
+                            try await client.applyGradient(
+                                gradient,
+                                to: next.element,
+                                index: next.offset,
+                                total: total
+                            )
+                            return (next.element, nil)
+                        } catch {
+                            return (next.element, error)
+                        }
                     }
                 }
 
-                try await taskGroup.waitForAll()
+                for _ in 0..<maxConcurrent { enqueueNext() }
+
+                var collected: [(HueLight, Error)] = []
+                while inFlight > 0, let result = await group.next() {
+                    inFlight -= 1
+                    if let error = result.1 {
+                        collected.append((result.0, error))
+                    }
+                    enqueueNext()
+                }
+                return collected
             }
 
             try await refreshResourcesWithoutSpinner()
+
+            if !failures.isEmpty {
+                throw HueAppError.partialGradient(
+                    failed: failures.map(\.0.name),
+                    total: total,
+                    underlying: failures.first?.1
+                )
+            }
         }
     }
 

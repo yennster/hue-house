@@ -75,12 +75,14 @@ enum HueTheme {
 
 extension View {
     @ViewBuilder
-    func hueGlass(cornerRadius: CGFloat = 20, tint: Color? = nil, interactive: Bool = false) -> some View {
+    func hueGlass(cornerRadius: CGFloat = 20, tint: Color? = nil, interactive _: Bool = false) -> some View {
+        // Interactive Liquid Glass reacts to surrounding UI (and screenshots
+        // capture those reflections, which looks distracting). The `interactive`
+        // parameter is kept for source compatibility but always ignored — every
+        // surface uses calm, static glass.
         if #available(macOS 26.0, *) {
             glassEffect(
-                Glass.regular
-                    .tint(tint)
-                    .interactive(interactive),
+                Glass.regular.tint(tint),
                 in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             )
         } else {

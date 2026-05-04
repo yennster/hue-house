@@ -479,7 +479,7 @@ enum HuePreset: String, CaseIterable, Identifiable, Sendable {
         case .cool:
             "snowflake"
         case .red:
-            "circle.fill"
+            "flame.fill"
         case .green:
             "leaf.fill"
         case .blue:

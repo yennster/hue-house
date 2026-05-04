@@ -298,12 +298,44 @@ final class HueBridgeClient: @unchecked Sendable {
             request.setValue(applicationKey, forHTTPHeaderField: "hue-application-key")
         }
 
-        let (data, response) = try await bridgeSession.data(for: request)
-        try Self.validateHTTPResponse(response)
+        let (data, _) = try await Self.performWithRateLimitRetry(
+            request: request,
+            session: bridgeSession
+        )
 
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(T.self, from: data)
+    }
+
+    /// Sends `request` and retries automatically when the bridge replies with
+    /// HTTP 429 (its rate-limit response). The Hue Bridge accepts roughly ten
+    /// writes/second; bursts beyond that trigger 429s that disappear after a
+    /// short pause. Backoff respects the `Retry-After` header when present.
+    private static func performWithRateLimitRetry(
+        request: URLRequest,
+        session: URLSession,
+        maxAttempts: Int = 4
+    ) async throws -> (Data, URLResponse) {
+        var attempt = 0
+        while true {
+            attempt += 1
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return (data, response)
+            }
+
+            if httpResponse.statusCode == 429, attempt < maxAttempts {
+                let delay = retryDelay(from: httpResponse, attempt: attempt)
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                continue
+            }
+
+            guard (200..<300).contains(httpResponse.statusCode) else {
+                throw HueAppError.httpStatus(httpResponse.statusCode)
+            }
+            return (data, response)
+        }
     }
 
     private static func validateHTTPResponse(_ response: URLResponse) throws {
@@ -311,6 +343,17 @@ final class HueBridgeClient: @unchecked Sendable {
         guard (200..<300).contains(httpResponse.statusCode) else {
             throw HueAppError.httpStatus(httpResponse.statusCode)
         }
+    }
+
+    private static func retryDelay(from response: HTTPURLResponse, attempt: Int) -> Double {
+        if let retryAfterHeader = response.value(forHTTPHeaderField: "Retry-After"),
+           let seconds = Double(retryAfterHeader) {
+            return min(seconds, 5)
+        }
+        // Exponential backoff with jitter: ~0.4s, ~0.8s, ~1.6s.
+        let base = 0.4 * pow(2.0, Double(attempt - 1))
+        let jitter = Double.random(in: 0...0.15)
+        return min(base + jitter, 3)
     }
 }
 

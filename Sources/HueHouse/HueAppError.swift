@@ -6,6 +6,7 @@ enum HueAppError: LocalizedError {
     case missingApplicationKey
     case httpStatus(Int)
     case bridgeRejected(String)
+    case partialGradient(failed: [String], total: Int, underlying: Error?)
 
     var errorDescription: String? {
         switch self {
@@ -15,8 +16,19 @@ enum HueAppError: LocalizedError {
             "The bridge address \u{201C}\(host)\u{201D} is not valid."
         case .missingApplicationKey:
             "This Mac is not paired with the Hue Bridge yet."
+        case .partialGradient(let failed, let total, let underlying):
+            HueAppError.partialGradientMessage(failed: failed, total: total, underlying: underlying)
         case .httpStatus(let status):
-            "The Hue Bridge returned HTTP \(status)."
+            switch status {
+            case 429:
+                "The Hue Bridge is rate-limiting requests. Try again in a moment."
+            case 401, 403:
+                "The Hue Bridge rejected this app's credentials. Try pairing again."
+            case 500..<600:
+                "The Hue Bridge ran into an internal error (HTTP \(status))."
+            default:
+                "The Hue Bridge returned HTTP \(status)."
+            }
         case .bridgeRejected(let message):
             HueAppError.formatted(message)
         }
@@ -50,6 +62,32 @@ enum HueAppError: LocalizedError {
         }
 
         return formatted(error.localizedDescription)
+    }
+
+    private static func partialGradientMessage(
+        failed: [String],
+        total: Int,
+        underlying: Error?
+    ) -> String {
+        let succeeded = total - failed.count
+        let names: String = {
+            switch failed.count {
+            case 0: return ""
+            case 1: return failed[0]
+            case 2: return "\(failed[0]) and \(failed[1])"
+            case 3...4: return failed.dropLast().joined(separator: ", ") + ", and \(failed.last!)"
+            default:
+                let first = failed.prefix(3).joined(separator: ", ")
+                return "\(first), and \(failed.count - 3) more"
+            }
+        }()
+
+        var reason = ""
+        if let underlying, case let HueAppError.httpStatus(status) = underlying, status == 429 {
+            reason = " The bridge briefly rate-limited some requests; try again."
+        }
+
+        return "Updated \(succeeded) of \(total) lights. Couldn\u{2019}t reach \(names).\(reason)"
     }
 
     /// Capitalizes the first letter and ensures the message ends with terminal punctuation.
