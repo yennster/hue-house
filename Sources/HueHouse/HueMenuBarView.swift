@@ -38,7 +38,7 @@ struct HueMenuBarView: View {
     private var settings: some View {
         VStack(alignment: .leading, spacing: 4) {
             sectionLabel("Settings")
-            Toggle(isOn: $hidesDockIcon) {
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Hide Dock icon")
                         .font(.system(.callout, design: .rounded))
@@ -46,9 +46,12 @@ struct HueMenuBarView: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 0)
+                Toggle("", isOn: $hidesDockIcon)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .labelsHidden()
             }
-            .toggleStyle(.switch)
-            .controlSize(.small)
             .padding(.horizontal, 12)
             .padding(.bottom, 6)
         }

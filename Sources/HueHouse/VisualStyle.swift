@@ -82,22 +82,21 @@ extension View {
         // hairline stroke for a calm, screenshot-friendly surface that still
         // keeps a sense of depth. The `interactive` parameter is kept for
         // source compatibility but ignored.
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return background(.regularMaterial, in: shape)
-            .overlay {
-                // Both overlays must opt out of hit testing — otherwise the
-                // tint fill (even when fully transparent) intercepts clicks
-                // and scroll gestures aimed at the wrapped content.
-                shape
-                    .fill(tint ?? .clear)
-                    .allowsHitTesting(false)
-            }
-            .overlay {
-                shape
-                    .stroke(Color.primary.opacity(0.16), lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-            .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+        //
+        // Material, tint, stroke, and shadow are all packaged inside a single
+        // `.background { … }` so the shadow's alpha mask comes only from the
+        // rounded shape — not from the wrapped row content. Otherwise, opaque
+        // text/icons inside the card contribute rectangular bumps to the
+        // shadow, which read as hard square corners in light mode.
+        background {
+            let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            shape
+                .fill(.regularMaterial)
+                .overlay(shape.fill(tint ?? .clear))
+                .overlay(shape.strokeBorder(Color.primary.opacity(0.16), lineWidth: 1))
+                .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+                .allowsHitTesting(false)
+        }
     }
 
     func siriTextFieldChrome() -> some View {
