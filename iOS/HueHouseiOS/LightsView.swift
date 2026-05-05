@@ -3,6 +3,7 @@ import SwiftUI
 
 struct LightsView: View {
     @EnvironmentObject private var store: HueStore
+    @State private var isRefreshSpinning = false
 
     var body: some View {
         Group {
@@ -20,9 +21,20 @@ struct LightsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    Task { await store.refreshLights() }
+                    Task {
+                        isRefreshSpinning = true
+                        await store.refreshLights()
+                        isRefreshSpinning = false
+                    }
                 } label: {
                     Image(systemName: "arrow.clockwise")
+                        .rotationEffect(.degrees(isRefreshSpinning ? 360 : 0))
+                        .animation(
+                            isRefreshSpinning
+                                ? .linear(duration: 0.7).repeatForever(autoreverses: false)
+                                : .easeOut(duration: 0.2),
+                            value: isRefreshSpinning
+                        )
                 }
                 .disabled(store.isWorking)
             }
@@ -51,18 +63,20 @@ struct LightsView: View {
                         Task { await store.setAllLights(on: true) }
                     } label: {
                         Label("All On", systemImage: "power.circle.fill")
-                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.green)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
 
                     Button {
                         Task { await store.setAllLights(on: false) }
                     } label: {
                         Label("All Off", systemImage: "power.circle")
-                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
                 }
                 .disabled(store.lights.isEmpty || store.isWorking)
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -99,17 +113,44 @@ private struct LightRowView: View {
 
     private var isUnreachable: Bool { store.skippedLightIDs.contains(light.id) }
 
+    private var lightCircleColor: Color {
+        guard light.isOn else { return Color.secondary.opacity(0.12) }
+        if let xy = light.color?.xy {
+            let brightness = max(0.3, light.brightness / 100)
+            let rgb = HueGradientColor.sRGB(fromXY: xy.x, y: xy.y, relativeBrightness: brightness)
+            return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+        }
+        // Warm white for color-temperature or dimmable-only lights
+        return Color(red: 1.0, green: 0.88, blue: 0.55)
+    }
+
+    private var lightIconForeground: Color {
+        guard light.isOn else { return .secondary }
+        // White icon on colored backgrounds; dark icon on warm white
+        return light.color != nil ? Color.white.opacity(0.85) : Color(white: 0.15)
+    }
+
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: light.isOn ? "lightbulb.led.fill" : "lightbulb.led")
-                .font(.title3)
-                .foregroundStyle(light.isOn ? .yellow : .secondary)
-                .frame(width: 28)
+            ZStack {
+                Circle()
+                    .fill(lightCircleColor)
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
+                    )
+
+                Image(systemName: light.isOn ? "lightbulb.led.fill" : "lightbulb.led")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(lightIconForeground)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(light.name)
                         .font(.body.weight(.medium))
+                        .foregroundStyle(.primary)
                     if isUnreachable {
                         Text("Unreachable")
                             .font(.caption2.weight(.semibold))
@@ -136,6 +177,7 @@ private struct LightRowView: View {
             .tint(.green)
             .disabled(isUnreachable || store.isWorking)
         }
+        .foregroundStyle(.primary)
         .opacity(isUnreachable ? 0.55 : 1.0)
     }
 }
