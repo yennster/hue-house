@@ -1,5 +1,6 @@
 import AppIntents
 import Foundation
+import HueKit
 
 struct HueGroupAppEntity: AppEntity {
     static let defaultQuery = HueGroupEntityQuery()

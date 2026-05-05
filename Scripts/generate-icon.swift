@@ -266,6 +266,108 @@ func drawLightbulbGlyph(in ctx: CGContext, frame: CGRect, color: RGBA) {
     ctx.restoreGState()
 }
 
+// MARK: - iOS variant
+
+/// Renders a flat, full-bleed iOS app icon. iOS applies its own corner mask,
+/// so this skips the inset, the squircle clip, the outer hairline, and the
+/// ambient drop-shadow that the macOS icon needs.
+func renderIOSIcon(size: CGFloat) -> CGImage {
+    let pixelSize = Int(size)
+    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let bitmapInfo = CGImageAlphaInfo.noneSkipLast.rawValue
+    guard let ctx = CGContext(
+        data: nil,
+        width: pixelSize,
+        height: pixelSize,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: colorSpace,
+        bitmapInfo: bitmapInfo
+    ) else {
+        fatalError("Failed to allocate iOS bitmap context at size \(pixelSize)")
+    }
+
+    ctx.setShouldAntialias(true)
+    ctx.interpolationQuality = .high
+    let bounds = CGRect(x: 0, y: 0, width: size, height: size)
+
+    // Background gradient — full bleed.
+    let bgColors = palette.map(\.cgColor) as CFArray
+    let bgStops: [CGFloat] = [0.0, 0.45, 0.78, 1.0]
+    if let gradient = CGGradient(colorsSpace: colorSpace, colors: bgColors, locations: bgStops) {
+        ctx.drawLinearGradient(
+            gradient,
+            start: CGPoint(x: 0, y: bounds.maxY),
+            end: CGPoint(x: bounds.maxX, y: 0),
+            options: [.drawsBeforeStartLocation, .drawsAfterEndLocation]
+        )
+    }
+
+    // Top-left bloom highlight.
+    let bloomColors = [
+        CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.55),
+        CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.0)
+    ] as CFArray
+    if let bloom = CGGradient(colorsSpace: colorSpace, colors: bloomColors, locations: [0.0, 1.0]) {
+        ctx.drawRadialGradient(
+            bloom,
+            startCenter: CGPoint(x: bounds.width * 0.20, y: bounds.height * 0.85),
+            startRadius: 0,
+            endCenter: CGPoint(x: bounds.width * 0.20, y: bounds.height * 0.85),
+            endRadius: bounds.width * 0.85,
+            options: []
+        )
+    }
+
+    // Bottom shading.
+    let floorColors = [
+        CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.0),
+        CGColor(srgbRed: 0.05, green: 0.02, blue: 0.10, alpha: 0.30)
+    ] as CFArray
+    if let floor = CGGradient(colorsSpace: colorSpace, colors: floorColors, locations: [0.6, 1.0]) {
+        ctx.drawLinearGradient(
+            floor,
+            start: CGPoint(x: bounds.midX, y: bounds.maxY),
+            end: CGPoint(x: bounds.midX, y: 0),
+            options: []
+        )
+    }
+
+    // Frosted glass card holding the glyph — give the icon depth.
+    let cardInset = bounds.width * 0.16
+    let cardRect = bounds.insetBy(dx: cardInset, dy: cardInset)
+    let cardCorner = cardRect.width * 0.30
+    let cardPath = CGPath(roundedRect: cardRect, cornerWidth: cardCorner, cornerHeight: cardCorner, transform: nil)
+
+    ctx.saveGState()
+    ctx.addPath(cardPath)
+    ctx.clip()
+    let cardColors = [
+        CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.32),
+        CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.10)
+    ] as CFArray
+    if let cardGradient = CGGradient(colorsSpace: colorSpace, colors: cardColors, locations: [0.0, 1.0]) {
+        ctx.drawLinearGradient(
+            cardGradient,
+            start: CGPoint(x: cardRect.minX, y: cardRect.maxY),
+            end: CGPoint(x: cardRect.maxX, y: cardRect.minY),
+            options: []
+        )
+    }
+    ctx.restoreGState()
+
+    ctx.saveGState()
+    ctx.addPath(cardPath)
+    ctx.setStrokeColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.55))
+    ctx.setLineWidth(size * 0.0035)
+    ctx.strokePath()
+    ctx.restoreGState()
+
+    drawLightbulbGlyph(in: ctx, frame: cardRect, color: .white)
+
+    return ctx.makeImage()!
+}
+
 // MARK: - PNG writing
 
 func writePNG(_ image: CGImage, to url: URL) {
@@ -331,3 +433,13 @@ if process.terminationStatus != 0 {
     fatalError("iconutil failed with status \(process.terminationStatus)")
 }
 print("wrote \(icnsURL.lastPathComponent)")
+
+// Also write the iOS-flavored full-bleed icon to the iOS asset catalog.
+let iosCatalog = projectRoot
+    .appendingPathComponent("iOS/HueHouseiOS/Assets.xcassets/AppIcon.appiconset", isDirectory: true)
+if FileManager.default.fileExists(atPath: iosCatalog.deletingLastPathComponent().path) {
+    let iosImage = renderIOSIcon(size: 1024)
+    let iosURL = iosCatalog.appendingPathComponent("AppIcon-1024.png")
+    writePNG(iosImage, to: iosURL)
+    print("wrote iOS/HueHouseiOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png")
+}

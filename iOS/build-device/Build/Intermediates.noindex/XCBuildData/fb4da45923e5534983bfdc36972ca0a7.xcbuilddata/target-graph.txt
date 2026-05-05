@@ -1,0 +1,6 @@
+Target dependency graph (3 targets)
+Target 'HueHouseiOS' in project 'HueHouseiOS'
+➜ Explicit dependency on target 'HueKit' in project 'HueHouse'
+Target 'HueKit' in project 'HueHouse'
+➜ Explicit dependency on target 'HueKit' in project 'HueHouse'
+Target 'HueKit' in project 'HueHouse' (no dependencies)

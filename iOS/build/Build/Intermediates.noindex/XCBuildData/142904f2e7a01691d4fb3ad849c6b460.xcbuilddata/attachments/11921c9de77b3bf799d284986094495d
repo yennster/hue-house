@@ -1,0 +1,89 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueKit-primary.dia",
+    "emit-module-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueKit-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueKit-primary-emit-module.dia",
+    "pch" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueKit-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueKit-primary.swiftdeps"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/HueAppError.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppError~partial.swiftmodule"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/HueAppStorage.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAppStorage~partial.swiftmodule"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/HueAutomationService.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueAutomationService~partial.swiftmodule"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/HueBridgeClient.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueBridgeClient~partial.swiftmodule"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/HueCSSGradient.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueCSSGradient~partial.swiftmodule"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/HueModels.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueModels~partial.swiftmodule"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/HueStore.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/HueStore~partial.swiftmodule"
+  },
+  "/Users/jenny/Work/philips-hue/Sources/HueKit/KeychainStore.swift" : {
+    "const-values" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore.swiftconstvalues",
+    "dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore.d",
+    "diagnostics" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore.dia",
+    "index-unit-output-path" : "/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore.o",
+    "llvm-bc" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore.bc",
+    "object" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore.o",
+    "swift-dependencies" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore.swiftdeps",
+    "swiftmodule" : "/Users/jenny/Work/philips-hue/iOS/build/Build/Intermediates.noindex/HueHouse.build/Debug-iphonesimulator/HueKit.build/Objects-normal/x86_64/KeychainStore~partial.swiftmodule"
+  }
+}
