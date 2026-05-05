@@ -11,7 +11,12 @@ public final class HueStore: ObservableObject {
     @Published public var discoveredBridges: [HueBridgeDiscovery] = []
     @Published public var lights: [HueLight] = []
     @Published public var groups: [HueLightGroup] = []
-    @Published public var selectedGroupID = HueLightGroup.allLightsID
+    @Published public var selectedGroupID = HueLightGroup.allLightsID {
+        didSet {
+            guard oldValue != selectedGroupID else { return }
+            selectedGradientID = ""
+        }
+    }
     @Published public var selectedGradientID = HueGradientPreset.fallback.id
     @Published public var isWorking = false
     @Published public var errorAlert: HueErrorAlert?

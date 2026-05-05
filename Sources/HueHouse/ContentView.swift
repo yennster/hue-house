@@ -634,16 +634,6 @@ private struct GradientControlPanel: View {
                 .buttonStyle(SiriGlassButtonStyle(tone: .quiet, fullWidth: true))
             }
             .frame(maxHeight: .infinity)
-
-            Button {
-                Task { await store.applySelectedGradient() }
-            } label: {
-                Label("Apply \(store.selectedGradient.title)", systemImage: "sparkles")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(SiriGlassButtonStyle(tone: .prominent, fullWidth: true))
-            .controlSize(.large)
-            .disabled(store.isWorking || selectedGroupLightCount == 0)
         }
         .padding(18)
         .hueGlass(cornerRadius: 30, tint: HueTheme.glassTint(colorScheme, opacity: 0.07))
@@ -860,7 +850,7 @@ private struct LightToolbar: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var brightness: Double = 100
-    @State private var hasSyncedBrightness = false
+    @State private var isEditingBrightness = false
 
     private var brightnessDisabled: Bool {
         store.selectedGroupLights.filter(\.supportsDimming).isEmpty || store.isWorking
@@ -889,6 +879,7 @@ private struct LightToolbar: View {
                     .foregroundStyle(HueTheme.secondaryText(colorScheme))
 
                 Slider(value: $brightness, in: 1...100, step: 1) { editing in
+                    isEditingBrightness = editing
                     if !editing {
                         Task { await store.setAllLights(brightness: brightness) }
                     }
@@ -922,16 +913,13 @@ private struct LightToolbar: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .hueGlass(cornerRadius: 24, tint: HueTheme.glassTint(colorScheme, opacity: 0.055), interactive: true)
-        .onAppear { syncBrightnessFromStore() }
-        .onChange(of: store.selectedGroupID) { _, _ in syncBrightnessFromStore() }
-        .onChange(of: store.selectedGroupBrightness) { _, _ in
-            if !hasSyncedBrightness { syncBrightnessFromStore() }
+        .onAppear { brightness = store.selectedGroupBrightness }
+        .onChange(of: store.selectedGroupID) { _, _ in
+            brightness = store.selectedGroupBrightness
         }
-    }
-
-    private func syncBrightnessFromStore() {
-        brightness = store.selectedGroupBrightness
-        hasSyncedBrightness = true
+        .onChange(of: store.selectedGroupBrightness) { _, newValue in
+            if !isEditingBrightness { brightness = newValue }
+        }
     }
 }
 
