@@ -275,6 +275,31 @@ public struct HueGradient: Decodable, Equatable, Sendable {
 
 public struct HueGradientPoint: Decodable, Equatable, Sendable {
     public let xy: HueXY
+
+    public init(xy: HueXY) {
+        self.xy = xy
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case xy
+        case color
+    }
+
+    private enum ColorKeys: String, CodingKey {
+        case xy
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Hue v2 gradient points wrap chromaticity as `{"color": {"xy": {x, y}}}`.
+        // Older firmware (and our previous payloads) returned the flat `{"xy": {x, y}}` shape,
+        // so accept both for read.
+        if let color = try? container.nestedContainer(keyedBy: ColorKeys.self, forKey: .color) {
+            xy = try color.decode(HueXY.self, forKey: .xy)
+        } else {
+            xy = try container.decode(HueXY.self, forKey: .xy)
+        }
+    }
 }
 
 public struct HueGradientColor: Hashable, Sendable, Codable {
@@ -286,6 +311,13 @@ public struct HueGradientColor: Hashable, Sendable, Codable {
 
     public var xyObject: [String: [String: Double]] {
         ["xy": ["x": x, "y": y]]
+    }
+
+    /// Hue v2 gradient point shape — `{"color": {"xy": {"x": …, "y": …}}}`.
+    /// Distinct from `xyObject` (used for the top-level `color` field on a
+    /// non-gradient light, which is `{"xy": {…}}` without the outer `color`).
+    public var gradientPointObject: [String: [String: [String: Double]]] {
+        ["color": ["xy": ["x": x, "y": y]]]
     }
 
     /// Builds a gradient color from sRGB components in the 0…1 range. Performs
@@ -492,7 +524,7 @@ public struct HueGradientPreset: Identifiable, Hashable, Sendable, Codable {
 
         if light.supportsGradient {
             object["gradient"] = [
-                "points": gradientColors(for: light).map(\.xyObject),
+                "points": gradientColors(for: light).map(\.gradientPointObject),
                 "mode": "interpolated_palette"
             ]
         } else if light.supportsColor {
