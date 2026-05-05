@@ -4,10 +4,9 @@ import Foundation
 /// Prompts the user to move Hue House into `/Applications` on first launch
 /// from a non-installed location (e.g. a download in `~/Downloads`).
 ///
-/// macOS LaunchServices only indexes App Intents — the things that power Siri,
-/// Shortcuts.app, and Spotlight — from apps that live in `/Applications` or
-/// `~/Applications`. A bundle launched directly from `~/Downloads` will run
-/// fine, but `Turn on Hue House` typed into Siri silently goes nowhere.
+/// macOS keeps better track of apps that live in `/Applications` or
+/// `~/Applications` — Spotlight indexing, the menu bar lifecycle, and
+/// auto-update flows all behave more predictably from there.
 ///
 /// On accept we copy the bundle, launch the moved copy, and quit ourselves.
 /// On decline we set a UserDefaults flag so the prompt doesn't reappear.
@@ -36,9 +35,7 @@ enum AppRelocator {
         let alert = NSAlert()
         alert.messageText = "Move Hue House to Applications?"
         alert.informativeText = """
-        Hue House works best when installed in your Applications folder. Siri, Shortcuts, and Spotlight only register App Intents from apps in /Applications.
-
-        Move now and Hue House will relaunch from there.
+        Hue House works best when installed in your Applications folder. Move now and Hue House will relaunch from there.
         """
         alert.alertStyle = .informational
         alert.addButton(withTitle: "Move to Applications")

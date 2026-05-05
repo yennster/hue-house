@@ -8,8 +8,6 @@ struct HueHouseApp: App {
     @AppStorage(HueAppStorage.hidesDockIconKey) private var hidesDockIcon = false
 
     init() {
-        HueHouseShortcuts.updateAppShortcutParameters()
-
         // Parse `-Demo YES` and seed demo state synchronously so the first body
         // pass renders against fake bridge data — used by Scripts/capture-screenshots.sh.
         let arguments = ProcessInfo.processInfo.arguments

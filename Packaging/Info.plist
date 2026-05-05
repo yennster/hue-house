@@ -39,7 +39,5 @@
         <string>_huesync._tcp</string>
         <string>_hap._tcp</string>
     </array>
-    <key>NSSiriUsageDescription</key>
-    <string>Hue House lets Siri run lighting shortcuts for your Hue Bridge.</string>
 </dict>
 </plist>

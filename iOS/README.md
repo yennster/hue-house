@@ -130,6 +130,5 @@ The script writes the macOS `.icns` to `Packaging/AppIcon.icns` *and* a flat ful
 ## Notes and known gaps
 
 - iOS has no menu bar, no Dock — the macOS-only `MenuBarExtra` and the "Hide Dock icon" toggle do not exist here.
-- Siri / Shortcuts (App Intents) are scoped to the macOS executable target. Adding iOS Shortcuts means re-declaring the intents in the iOS target with `import HueKit` so they reuse `HueAutomationService`.
 - The Liquid Glass material treatment from macOS isn't replicated; the iOS UI uses standard system materials and `.insetGrouped` Form / List styles instead.
 - Local Network permission can get stuck in the "denied" state if the user dismisses the prompt without choosing. Reset via **Settings → Hue House → Local Network**.
