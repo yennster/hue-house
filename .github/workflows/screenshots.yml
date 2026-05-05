@@ -53,8 +53,15 @@ jobs:
       # Opens a PR if docs/ changed; no-op when nothing changed (e.g. UI
       # output is byte-identical to what's already on main). The action also
       # cleans up its own branch automatically when the PR is merged.
+      #
+      # NOTE: requires the repo-level setting
+      #   Settings → Actions → General → Workflow permissions →
+      #   "Allow GitHub Actions to create and approve pull requests" ☑
+      # Without that, GITHUB_TOKEN can write commits but can't open PRs and
+      # this step fails with "GitHub Actions is not permitted to create or
+      # approve pull requests."
       - name: Open PR if anything changed
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "Refresh README screenshots (${{ inputs.target }})"
           title: "Refresh README screenshots (${{ inputs.target }})"
