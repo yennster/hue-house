@@ -4,6 +4,7 @@ import SwiftUI
 struct HueHouseApp: App {
     @StateObject private var store = HueStore()
     @AppStorage(HueAppStorage.appearanceModeKey) private var appearanceModeRawValue = HueAppearanceMode.system.rawValue
+    @AppStorage(HueAppStorage.hidesDockIconKey) private var hidesDockIcon = false
 
     init() {
         HueHouseShortcuts.updateAppShortcutParameters()
@@ -15,14 +16,7 @@ struct HueHouseApp: App {
                 .environmentObject(store)
                 .frame(minWidth: 760, minHeight: 540)
                 .task {
-                    // Adding a MenuBarExtra scene can flip the activation policy
-                    // to .accessory on some macOS versions, which prevents the
-                    // main window from accepting key status — typing in any
-                    // TextField then beeps. Force regular activation so the
-                    // window can take first responder normally.
-                    NSApplication.shared.setActivationPolicy(.regular)
-                    NSApp.activate(ignoringOtherApps: true)
-
+                    applyActivationPolicy()
                     HueAppearanceMode.apply(
                         HueAppearanceMode(rawValue: appearanceModeRawValue) ?? .system
                     )
@@ -32,6 +26,9 @@ struct HueHouseApp: App {
                     HueAppearanceMode.apply(
                         HueAppearanceMode(rawValue: newValue) ?? .system
                     )
+                }
+                .onChange(of: hidesDockIcon) { _, _ in
+                    applyActivationPolicy()
                 }
         }
         .windowResizability(.contentSize)
@@ -60,5 +57,18 @@ struct HueHouseApp: App {
                 .environmentObject(store)
         }
         .menuBarExtraStyle(.window)
+    }
+
+    /// Applies the user's "Hide Dock icon" preference. `.accessory` removes the
+    /// Dock tile and the app's main menu bar, but the menu bar extra and any
+    /// open windows stay visible. Switching back to `.regular` restores the
+    /// Dock icon and re-activates the app so the window can take key status.
+    private func applyActivationPolicy() {
+        if hidesDockIcon {
+            NSApplication.shared.setActivationPolicy(.accessory)
+        } else {
+            NSApplication.shared.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 }

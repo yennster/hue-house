@@ -29,6 +29,7 @@ struct ContentView: View {
                 .transition(.opacity)
             }
             .padding(18)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .foregroundStyle(HueTheme.primaryText(colorScheme))
         .tint(HueTheme.controlTint(colorScheme))

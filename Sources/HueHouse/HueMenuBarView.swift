@@ -4,6 +4,7 @@ struct HueMenuBarView: View {
     @EnvironmentObject private var store: HueStore
     @Environment(\.openWindow) private var openWindow
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(HueAppStorage.hidesDockIconKey) private var hidesDockIcon = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -17,10 +18,32 @@ struct HueMenuBarView: View {
             }
 
             Divider()
+            settings
+            Divider()
             footer
         }
         .frame(width: 320)
         .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private var settings: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            sectionLabel("Settings")
+            Toggle(isOn: $hidesDockIcon) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Hide Dock icon")
+                        .font(.system(.callout, design: .rounded))
+                    Text("Run from the menu bar only")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 6)
+        }
     }
 
     private var header: some View {

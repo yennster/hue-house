@@ -33,6 +33,12 @@
     </dict>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Hue House connects to the Philips Hue Bridge on your local network.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_hue._tcp</string>
+        <string>_huesync._tcp</string>
+        <string>_hap._tcp</string>
+    </array>
     <key>NSSiriUsageDescription</key>
     <string>Hue House lets Siri run lighting shortcuts for your Hue Bridge.</string>
 </dict>
