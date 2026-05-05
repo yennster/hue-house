@@ -36,8 +36,6 @@
   <a href="#packaging">Packaging</a>
   <span> - </span>
   <a href="#ios-app">iOS app</a>
-  <span> - </span>
-  <a href="#support">Support</a>
 </p>
 
 <p align="center">
@@ -281,7 +279,3 @@ Network access is limited to the Hue Bridge IP and `discovery.meethue.com` for c
 Current app version: `0.5.0`
 
 Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.5.0` so the repository badges, release notes, app bundle version, and generated zip filename stay aligned.
-
-## Support
-
-If Hue House makes your mornings a little brighter, [a coffee tip](https://www.buymeacoffee.com/yennster) is always appreciated, never required.
