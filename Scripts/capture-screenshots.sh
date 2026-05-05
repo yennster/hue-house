@@ -69,7 +69,9 @@ if [ "$want_mac" -eq 1 ]; then
     fi
 
     echo "==> Capturing window $WIN_ID -> $OUTPUT"
-    screencapture -l "$WIN_ID" -o -t png "$OUTPUT"
+    # Omit `-o` so the macOS drop shadow is included on a transparent
+    # background — the standard "screenshot of a window" look.
+    screencapture -l "$WIN_ID" -t png "$OUTPUT"
 
     kill "$APP_PID" 2>/dev/null || true
     wait "$APP_PID" 2>/dev/null || true
