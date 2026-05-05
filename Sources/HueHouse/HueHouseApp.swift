@@ -28,6 +28,11 @@ struct HueHouseApp: App {
                 .environmentObject(store)
                 .frame(minWidth: 920, minHeight: 760)
                 .task {
+                    // Offer to move into /Applications if the user is running
+                    // from somewhere that LaunchServices doesn't index App
+                    // Intents from (typically ~/Downloads after unzipping the
+                    // release). No-op once installed.
+                    AppRelocator.promptIfNeeded()
                     applyActivationPolicy()
                     HueAppearanceMode.apply(
                         HueAppearanceMode(rawValue: appearanceModeRawValue) ?? .system

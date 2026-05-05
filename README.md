@@ -66,13 +66,13 @@ Hue House is a SwiftUI app for finding a Philips Hue Bridge on your local networ
 ### From a release build (recommended)
 
 1. Download `HueHouse-vX.Y.Z.zip` from the [Releases page](https://github.com/yennster/hue-house/releases) and unzip it.
-2. Drag `HueHouse.app` into `/Applications`.
-3. The bundle is ad-hoc signed but **not notarized**, so the first launch needs a Gatekeeper bypass:
+2. Open `HueHouse.app`. The first time, macOS Gatekeeper may show a warning because the bundle is ad-hoc signed but **not notarized**. Two ways through:
    - **Right-click `HueHouse.app` → Open**, then click **Open** in the dialog. macOS remembers the choice for future launches.
    - If macOS shows `"HueHouse" is damaged and can't be opened` (the browser added a quarantine flag that blocks even right-click → Open), strip the flag once in Terminal:
      ```sh
-     xattr -cr /Applications/HueHouse.app
+     xattr -cr ~/Downloads/HueHouse.app
      ```
+3. On first launch, Hue House offers to move itself into `/Applications`. Click **Move to Applications** — it's required for Siri, Shortcuts, and Spotlight integrations to register App Intents. The app will relaunch from `/Applications` automatically.
 
 ### From source
 
