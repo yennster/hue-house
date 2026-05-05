@@ -585,18 +585,35 @@ private struct GradientControlPanel: View {
                 Text("Group")
                     .siriSectionTitle()
 
-                Picker("Group", selection: $store.selectedGroupID) {
+                // A `.menu`-styled Picker on macOS sizes to the longest item
+                // label and ignores `.frame(maxWidth: .infinity)`. With only
+                // a couple of short group names (e.g. demo mode) it shrinks
+                // away from the panel edges. A Menu + custom button label
+                // honors the SiriGlassButtonStyle's full-width frame instead.
+                Menu {
                     ForEach(store.availableGroups) { group in
+                        Button {
+                            store.selectedGroupID = group.id
+                        } label: {
+                            Label(
+                                "\(group.name) · \(store.lightCount(in: group))",
+                                systemImage: group.systemImage
+                            )
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
                         Label(
-                            "\(group.name) · \(store.lightCount(in: group))",
-                            systemImage: group.systemImage
+                            "\(store.selectedGroup.name) · \(store.lightCount(in: store.selectedGroup))",
+                            systemImage: store.selectedGroup.systemImage
                         )
-                        .tag(group.id)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(HueTheme.secondaryText(colorScheme))
                     }
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity)
+                .menuIndicator(.hidden)
                 .buttonStyle(SiriGlassButtonStyle(tone: .quiet, fullWidth: true))
             }
 
