@@ -3,7 +3,10 @@ import Foundation
 @MainActor
 public final class HueStore: ObservableObject {
     @Published public var bridgeHost: String {
-        didSet { UserDefaults.standard.set(bridgeHost, forKey: HueAppStorage.bridgeHostKey) }
+        didSet {
+            guard !isDemoMode else { return }
+            UserDefaults.standard.set(bridgeHost, forKey: HueAppStorage.bridgeHostKey)
+        }
     }
     @Published public var discoveredBridges: [HueBridgeDiscovery] = []
     @Published public var lights: [HueLight] = []
@@ -23,12 +26,19 @@ public final class HueStore: ObservableObject {
     /// user forgets the bridge or relaunches the app.
     @Published public private(set) var skippedLightIDs: Set<String> = []
 
+    /// `true` when `enableDemoMode()` has populated the store with fake bridge
+    /// state. All bridge mutations short-circuit to in-memory updates so the UI
+    /// can be exercised without a real Hue Bridge on the network. Cleared by
+    /// `forgetBridge()`.
+    @Published public private(set) var isDemoMode = false
+
     public var localDiscoveryDescription: String {
         HueBridgeClient.localDiscoveryDescription()
     }
 
     private var applicationKey: String? {
         didSet {
+            guard !isDemoMode else { return }
             if let applicationKey {
                 try? KeychainStore.save(applicationKey)
             } else {
@@ -38,8 +48,21 @@ public final class HueStore: ObservableObject {
     }
 
     public init() {
-        bridgeHost = UserDefaults.standard.string(forKey: HueAppStorage.bridgeHostKey) ?? ""
-        applicationKey = KeychainStore.read()
+        let storedHost = UserDefaults.standard.string(forKey: HueAppStorage.bridgeHostKey) ?? ""
+        let storedKey = KeychainStore.read()
+
+        // One-time migration: drop any leaked demo-mode credentials from before
+        // demo state was made session-only.
+        if storedHost == HueDemoData.bridgeHost || storedKey == HueDemoData.applicationKey {
+            bridgeHost = ""
+            applicationKey = nil
+            UserDefaults.standard.removeObject(forKey: HueAppStorage.bridgeHostKey)
+            try? KeychainStore.delete()
+        } else {
+            bridgeHost = storedHost
+            applicationKey = storedKey
+        }
+
         if let data = UserDefaults.standard.data(forKey: HueAppStorage.customGradientsKey),
            let decoded = try? JSONDecoder().decode([HueGradientPreset].self, from: data) {
             customGradients = decoded
@@ -151,7 +174,22 @@ public final class HueStore: ObservableObject {
         bridgeHost = bridge.internalIPAddress
     }
 
+    /// Populates the store with fake bridge state for UI testing. No network
+    /// I/O is performed and all subsequent mutations stay in-memory.
+    public func enableDemoMode() {
+        isDemoMode = true
+        bridgeHost = HueDemoData.bridgeHost
+        applicationKey = HueDemoData.applicationKey
+        lights = HueDemoData.lights
+        groups = HueDemoData.groups
+        discoveredBridges = []
+        hasAttemptedDiscovery = true
+        skippedLightIDs.removeAll()
+        selectedGroupID = HueLightGroup.allLightsID
+    }
+
     public func discoverBridges() async {
+        if isDemoMode { return }
         await run("Could not discover Hue Bridges.") {
             hasAttemptedDiscovery = true
             discoveredBridges = try await HueBridgeClient.discoverBridges()
@@ -168,6 +206,7 @@ public final class HueStore: ObservableObject {
     }
 
     public func pairBridge() async {
+        if isDemoMode { return }
         await run("Could not pair with the Hue Bridge.") {
             let client = HueBridgeClient(host: normalizedBridgeHost)
             let key = try await client.createApplicationKey()
@@ -182,6 +221,7 @@ public final class HueStore: ObservableObject {
     }
 
     public func refreshLights() async {
+        if isDemoMode { return }
         await run("Could not refresh lights.") {
             try await refreshResourcesWithoutSpinner()
         }
@@ -189,6 +229,12 @@ public final class HueStore: ObservableObject {
 
     public func setAllLights(on: Bool) async {
         let candidates = selectedGroupLights
+        if isDemoMode {
+            for light in candidates {
+                updateCachedLight(id: light.id) { $0.on = HueOnState(on: on) }
+            }
+            return
+        }
         await run("Could not update all lights.") {
             try await self.runBatchUpdate(over: candidates) { client, light, _, _ in
                 try await client.setLight(id: light.id, on: on)
@@ -197,6 +243,10 @@ public final class HueStore: ObservableObject {
     }
 
     public func setLight(_ id: String, on: Bool) async {
+        if isDemoMode {
+            updateCachedLight(id: id) { $0.on = HueOnState(on: on) }
+            return
+        }
         await runSingleLightUpdate(on: id) {
             let client = try self.currentClient()
             try await client.setLight(id: id, on: on)
@@ -207,6 +257,12 @@ public final class HueStore: ObservableObject {
     }
 
     public func setLight(_ id: String, brightness: Double) async {
+        if isDemoMode {
+            updateCachedLight(id: id) { light in
+                light.dimming = HueDimming(brightness: brightness, minDimLevel: light.dimming?.minDimLevel)
+            }
+            return
+        }
         await runSingleLightUpdate(on: id) {
             let client = try self.currentClient()
             try await client.setLight(id: id, brightness: brightness)
@@ -226,6 +282,24 @@ public final class HueStore: ObservableObject {
         blue: Double,
         alphaPercent: Double? = nil
     ) async {
+        if isDemoMode {
+            if let alphaPercent, alphaPercent <= 0 {
+                updateCachedLight(id: id) { $0.on = HueOnState(on: false) }
+                return
+            }
+            let converted = HueGradientColor.fromSRGB(red: red, green: green, blue: blue)
+            updateCachedLight(id: id) { light in
+                light.on = HueOnState(on: true)
+                light.color = HueColor(xy: HueXY(x: converted.x, y: converted.y))
+                if let alphaPercent {
+                    light.dimming = HueDimming(
+                        brightness: max(1, min(100, alphaPercent)),
+                        minDimLevel: light.dimming?.minDimLevel
+                    )
+                }
+            }
+            return
+        }
         await runSingleLightUpdate(on: id) {
             let client = try self.currentClient()
 
@@ -260,6 +334,10 @@ public final class HueStore: ObservableObject {
 
     public func applyPreset(_ preset: HuePreset, to id: String) async {
         guard preset != .none else { return }
+        if isDemoMode {
+            applyDemoPreset(preset, to: id)
+            return
+        }
         await runSingleLightUpdate(on: id) {
             let client = try self.currentClient()
             try await client.applyPreset(preset, to: id)
@@ -270,6 +348,10 @@ public final class HueStore: ObservableObject {
     public func applyPresetToAll(_ preset: HuePreset) async {
         guard preset != .none else { return }
         let candidates = lights
+        if isDemoMode {
+            for light in candidates { applyDemoPreset(preset, to: light.id) }
+            return
+        }
         await run("Could not apply preset to all lights.") {
             try await self.runBatchUpdate(over: candidates) { client, light, _, _ in
                 try await client.applyPreset(preset, to: light.id)
@@ -282,12 +364,63 @@ public final class HueStore: ObservableObject {
         let groupName = selectedGroup.name
         let gradient = selectedGradient
 
+        if isDemoMode {
+            applyDemoGradient(gradient, to: candidates)
+            return
+        }
+
         await run("Could not apply gradient.") {
             guard !candidates.isEmpty else {
                 throw HueAppError.bridgeRejected("No lights were found in \(groupName).")
             }
             try await self.runBatchUpdate(over: candidates) { client, light, index, total in
                 try await client.applyGradient(gradient, to: light, index: index, total: total)
+            }
+        }
+    }
+
+    private func applyDemoPreset(_ preset: HuePreset, to id: String) {
+        let brightness: Double
+        let xy: (x: Double, y: Double)?
+        let mirek: Int?
+        switch preset {
+        case .none:
+            return
+        case .warm:
+            brightness = 72; xy = nil; mirek = 366
+        case .cool:
+            brightness = 100; xy = nil; mirek = 153
+        case .red:
+            brightness = 85; xy = (0.675, 0.322); mirek = nil
+        case .green:
+            brightness = 85; xy = (0.409, 0.518); mirek = nil
+        case .blue:
+            brightness = 85; xy = (0.167, 0.04); mirek = nil
+        }
+
+        updateCachedLight(id: id) { light in
+            light.on = HueOnState(on: true)
+            light.dimming = HueDimming(brightness: brightness, minDimLevel: light.dimming?.minDimLevel)
+            if let mirek {
+                light.colorTemperature = HueColorTemperature(mirek: mirek, mirekValid: true)
+            }
+            if let xy {
+                light.color = HueColor(xy: HueXY(x: xy.x, y: xy.y))
+            }
+        }
+    }
+
+    private func applyDemoGradient(_ gradient: HueGradientPreset, to candidates: [HueLight]) {
+        guard !candidates.isEmpty, !gradient.colors.isEmpty else { return }
+        for (index, light) in candidates.enumerated() {
+            let color = gradient.colors[index % gradient.colors.count]
+            updateCachedLight(id: light.id) { cached in
+                cached.on = HueOnState(on: true)
+                cached.color = HueColor(xy: HueXY(x: color.x, y: color.y))
+                cached.dimming = HueDimming(
+                    brightness: max(1, gradient.brightness),
+                    minDimLevel: cached.dimming?.minDimLevel
+                )
             }
         }
     }
@@ -396,6 +529,9 @@ public final class HueStore: ObservableObject {
     }
 
     public func forgetBridge() {
+        // Disable demo mode FIRST so the subsequent clears flow through to
+        // UserDefaults / Keychain instead of being skipped by the demo guard.
+        isDemoMode = false
         bridgeHost = ""
         applicationKey = nil
         discoveredBridges = []

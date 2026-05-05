@@ -13,15 +13,20 @@ struct BridgeView: View {
                 connectedSection
             } else {
                 pairingSection
+                inlinePairBridgeSection
             }
 
             Section("Appearance") {
                 Picker("Theme", selection: $appearanceMode) {
-                    Label("System", systemImage: "circle.lefthalf.filled").tag("system")
-                    Label("Light", systemImage: "sun.max.fill").tag("light")
-                    Label("Dark", systemImage: "moon.fill").tag("dark")
+                    Text("System").tag("system")
+                    Text("Light").tag("light")
+                    Text("Dark").tag("dark")
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
+            }
+
+            if !store.canControlLights {
+                demoModeSection
             }
         }
         .navigationTitle("Bridge")
@@ -31,8 +36,28 @@ struct BridgeView: View {
     }
 
     @ViewBuilder
+    private var inlinePairBridgeSection: some View {
+        Section {
+            Button {
+                Task { await store.pairBridge() }
+            } label: {
+                Text("Pair Bridge")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .buttonBorderShape(.capsule)
+            .disabled(!store.canAttemptPairing || store.isWorking)
+            .listRowBackground(Color.clear)
+        } footer: {
+            Text(store.pairingHint)
+        }
+    }
+
+    @ViewBuilder
     private var connectedSection: some View {
-        Section("Connected") {
+        Section(store.isDemoMode ? "Connected (Demo)" : "Connected") {
             LabeledContent("Address") {
                 Text(HueBridgeClient.normalizedHost(from: store.bridgeHost))
                     .font(.body.monospaced())
@@ -68,6 +93,7 @@ struct BridgeView: View {
             } label: {
                 Label("Forget Bridge", systemImage: "xmark.circle")
             }
+            .tint(.red)
             .disabled(store.isWorking)
         }
 
@@ -139,19 +165,6 @@ struct BridgeView: View {
         }
 
         Section {
-            Button {
-                Task { await store.pairBridge() }
-            } label: {
-                Label("Pair Bridge", systemImage: "link")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!store.canAttemptPairing || store.isWorking)
-        } footer: {
-            Text(store.pairingHint)
-        }
-
-        Section {
             DisclosureGroup("Manual IP address", isExpanded: $isManualVisible) {
                 TextField("192.168.1.x", text: $store.bridgeHost)
                     .font(.body.monospaced())
@@ -160,6 +173,19 @@ struct BridgeView: View {
             }
         } footer: {
             Text("Use this only if automatic discovery cannot see your bridge.")
+        }
+    }
+
+    @ViewBuilder
+    private var demoModeSection: some View {
+        Section {
+            Button {
+                store.enableDemoMode()
+            } label: {
+                Label("Use Demo Bridge", systemImage: "wand.and.stars")
+            }
+        } footer: {
+            Text("For testing only — loads fake lights and groups so you can explore the app without a real Hue Bridge.")
         }
     }
 }

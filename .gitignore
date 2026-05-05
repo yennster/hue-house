@@ -1,3 +1,8 @@
 .build/
 .swiftpm/
 .DS_Store
+
+# iOS — Xcode project is regenerated from iOS/project.yml via `xcodegen generate`
+iOS/HueHouseiOS.xcodeproj/
+iOS/build/
+iOS/build-device/
