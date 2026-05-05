@@ -25,6 +25,11 @@ let package = Package(
             name: "HueHouse",
             dependencies: ["HueKit"],
             path: "Sources/HueHouse"
+        ),
+        .testTarget(
+            name: "HueKitTests",
+            dependencies: ["HueKit"],
+            path: "Tests/HueKitTests"
         )
     ]
 )

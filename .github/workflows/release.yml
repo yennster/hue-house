@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    name: Build & attach release zip
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Show toolchain
+        run: |
+          xcode-select -p
+          swift --version
+          xcodebuild -version
+
+      - name: Verify tag matches Info.plist version
+        run: |
+          PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Packaging/Info.plist)"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "Plist version: $PLIST_VERSION"
+          echo "Tag version:   $TAG_VERSION"
+          if [ "$PLIST_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match Info.plist version $PLIST_VERSION"
+            exit 1
+          fi
+
+      - name: Build release zip
+        run: sh Scripts/package-app.sh
+
+      - name: Upload zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .build/HueHouse-v*.zip
+          fail_on_unmatched_files: true
