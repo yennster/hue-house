@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: Build & test
+    name: macOS — build & test
     runs-on: macos-15
 
     steps:
@@ -29,3 +29,37 @@ jobs:
 
       - name: Run tests
         run: swift test
+
+  ios-build:
+    name: iOS — generate & build app for simulator
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Show toolchain
+        run: |
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Generate Xcode project
+        working-directory: iOS
+        run: xcodegen generate
+
+      # Building the iOS app for the simulator transitively builds HueKit
+      # against iOS, so any iOS-incompatible code in the shared library is
+      # caught here even though the Swift Testing suite is run on macOS only.
+      - name: Build app for iOS Simulator (no signing)
+        working-directory: iOS
+        run: |
+          xcodebuild build \
+            -project HueHouseiOS.xcodeproj \
+            -scheme HueHouseiOS \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM=''
