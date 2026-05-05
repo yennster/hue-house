@@ -51,7 +51,7 @@ jobs:
 
       # Building the iOS app for the simulator transitively builds HueKit
       # against iOS, so any iOS-incompatible code in the shared library is
-      # caught here even though the Swift Testing suite is run on macOS only.
+      # caught here in addition to the dedicated test run below.
       - name: Build app for iOS Simulator (no signing)
         working-directory: iOS
         run: |
@@ -59,6 +59,28 @@ jobs:
             -project HueHouseiOS.xcodeproj \
             -scheme HueHouseiOS \
             -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM=''
+
+      - name: Pick iPhone simulator
+        id: sim
+        run: |
+          DEVICE="$(xcrun simctl list devices available -j | \
+            python3 -c 'import json,sys; ds=json.load(sys.stdin)["devices"]; \
+                        keys=[k for k in ds if "iOS" in k]; keys.sort(reverse=True); \
+                        print(next(d["name"] for d in ds[keys[0]] if "iPhone" in d["name"]))')"
+          echo "Using simulator: $DEVICE"
+          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
+
+      - name: Run HueKit tests on iOS Simulator
+        working-directory: iOS
+        run: |
+          xcodebuild test \
+            -project HueHouseiOS.xcodeproj \
+            -scheme HueKitTestsiOS \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \

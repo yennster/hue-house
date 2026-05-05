@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import HueKit
+import HueKit
 
 @Suite("CSS gradient parser")
 struct HueCSSGradientTests {

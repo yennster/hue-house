@@ -36,3 +36,25 @@ targets:
         ENABLE_PREVIEWS: YES
     dependencies:
       - package: HueKit
+
+  # Logic-only test bundle that re-runs the shared HueKit Swift Testing suite
+  # (same .swift files used by the SwiftPM macOS test target) against the iOS
+  # Simulator runtime. No host app required — pure unit tests over public API.
+  HueKitTestsiOS:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ../Tests/HueKitTests
+    settings:
+      base:
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: ""
+        TEST_HOST: ""
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - package: HueKit
+    scheme:
+      testTargets:
+        - HueKitTestsiOS
+      gatherCoverageData: false

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import HueKit
+import HueKit
 
 @Suite("Gradient payload shape")
 struct GradientPayloadTests {

@@ -1,5 +1,5 @@
 import Foundation
-@testable import HueKit
+import HueKit
 
 enum LightFixtures {
     static let decoder: JSONDecoder = {

@@ -309,6 +309,14 @@ public struct HueGradientColor: Hashable, Sendable, Codable {
     public let green: Double
     public let blue: Double
 
+    public init(x: Double, y: Double, red: Double, green: Double, blue: Double) {
+        self.x = x
+        self.y = y
+        self.red = red
+        self.green = green
+        self.blue = blue
+    }
+
     public var xyObject: [String: [String: Double]] {
         ["xy": ["x": x, "y": y]]
     }
