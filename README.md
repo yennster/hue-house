@@ -268,6 +268,13 @@ Scripts/
                                Packaging/AppIcon.icns (macOS, with squircle inset) and
                                iOS/HueHouseiOS/Assets.xcassets/AppIcon.appiconset/
                                AppIcon-1024.png (iOS, full-bleed)
+  capture-screenshots.sh       Headless screenshot regen for docs/. Boots an
+                               iPhone simulator + launches the macOS app in
+                               demo mode and writes the README imagery.
+                               Flags: --mac, --ios (default: both)
+  find-window-id.swift         CoreGraphics helper that prints the on-screen
+                               window ID for a given pid (no Accessibility
+                               permission required), used by capture-screenshots.sh
 ```
 
 ## Privacy

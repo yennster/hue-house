@@ -3,12 +3,23 @@ import SwiftUI
 
 @main
 struct HueHouseApp: App {
-    @StateObject private var store = HueStore()
+    @StateObject private var store: HueStore
     @AppStorage(HueAppStorage.appearanceModeKey) private var appearanceModeRawValue = HueAppearanceMode.system.rawValue
     @AppStorage(HueAppStorage.hidesDockIconKey) private var hidesDockIcon = false
 
     init() {
         HueHouseShortcuts.updateAppShortcutParameters()
+
+        // Parse `-Demo YES` and seed demo state synchronously so the first body
+        // pass renders against fake bridge data — used by Scripts/capture-screenshots.sh.
+        let arguments = ProcessInfo.processInfo.arguments
+        let store = HueStore()
+        if let i = arguments.firstIndex(of: "-Demo"),
+           i + 1 < arguments.count,
+           ["yes", "true", "1"].contains(arguments[i + 1].lowercased()) {
+            store.enableDemoMode()
+        }
+        _store = StateObject(wrappedValue: store)
     }
 
     var body: some Scene {
