@@ -1021,19 +1021,17 @@ private struct LightRow: View {
                     Button {
                         isColorPopoverVisible.toggle()
                     } label: {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(swatchColor)
-                            .frame(width: 30, height: 22)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(HueTheme.hairline(colorScheme, opacity: 0.35), lineWidth: 0.75)
-                            )
-                            .overlay(
-                                Image(systemName: "eyedropper")
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.75))
-                                    .shadow(color: .black.opacity(0.4), radius: 1)
-                            )
+                        ZStack {
+                            swatchFill
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(HueTheme.hairline(colorScheme, opacity: 0.35), lineWidth: 0.75)
+                            Image(systemName: "eyedropper")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.75))
+                                .shadow(color: .black.opacity(0.4), radius: 1)
+                        }
+                        .frame(width: 30, height: 22)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .help("Pick a custom color")
@@ -1076,6 +1074,36 @@ private struct LightRow: View {
             blue: blueChannel / 255,
             opacity: max(0.05, alphaPercent / 100)
         )
+    }
+
+    /// Per-point colors for a gradient-capable light, derived from the bridge's
+    /// last-reported `gradient.points` and the light's overall brightness.
+    /// Returns `nil` when the light isn't a gradient strip or the bridge hasn't
+    /// reported point colors yet (fresh light, or no gradient applied).
+    private var gradientPreviewColors: [Color]? {
+        guard light.supportsGradient,
+              let points = light.gradient?.points,
+              points.count >= 2 else { return nil }
+
+        let relative = max(0.05, light.brightness / 100)
+        return points.map { point in
+            let rgb = HueGradientColor.sRGB(
+                fromXY: point.xy.x,
+                y: point.xy.y,
+                relativeBrightness: relative
+            )
+            return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+        }
+    }
+
+    @ViewBuilder
+    private var swatchFill: some View {
+        if let colors = gradientPreviewColors {
+            LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+                .opacity(max(0.05, alphaPercent / 100))
+        } else {
+            Rectangle().fill(swatchColor)
+        }
     }
 
     /// Pulls the light's last-known xy chromaticity and brightness out of the
