@@ -226,11 +226,16 @@ struct HueMenuBarView: View {
     }
 
     private func openMainWindow() {
-        NSApp.activate(ignoringOtherApps: true)
-        for window in NSApp.windows where window.canBecomeMain {
-            window.makeKeyAndOrderFront(nil)
-            return
+        // If the main window is still around (just hidden / behind other apps),
+        // bring it forward. Otherwise SwiftUI needs to be asked explicitly to
+        // create a new one — `NSApp.windows` is empty after the last main
+        // window was closed and just calling `activate` won't restore it.
+        if let existing = NSApp.windows.first(where: { $0.canBecomeMain }) {
+            existing.makeKeyAndOrderFront(nil)
+        } else {
+            openWindow(id: "main")
         }
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 

@@ -11,7 +11,7 @@ struct HueHouseApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             ContentView()
                 .environmentObject(store)
                 .frame(minWidth: 760, minHeight: 540)
