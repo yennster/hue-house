@@ -268,6 +268,7 @@ private struct BridgeTabView: View {
 private struct BridgeDetailView: View {
     @EnvironmentObject private var store: HueStore
     @Environment(\.colorScheme) private var colorScheme
+    @State private var siriSetupNotice: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -324,10 +325,50 @@ private struct BridgeDetailView: View {
                     .buttonStyle(SiriGlassButtonStyle(tone: .destructive))
                 }
             }
+
+            Divider().overlay(HueTheme.hairline(colorScheme, opacity: 0.16))
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Siri & Shortcuts")
+                    .siriSectionTitle()
+
+                Text("Register Hue House actions with macOS so you can run them by voice or in Shortcuts.app.")
+                    .font(.system(.callout, design: .rounded))
+                    .foregroundStyle(HueTheme.secondaryText(colorScheme))
+
+                HStack(spacing: 10) {
+                    Button {
+                        runSiriSetup()
+                    } label: {
+                        Label("Set Up Siri & Shortcuts", systemImage: "wand.and.stars")
+                    }
+                    .buttonStyle(SiriGlassButtonStyle(tone: .standard))
+
+                    Spacer()
+                }
+
+                if let siriSetupNotice {
+                    Text(siriSetupNotice)
+                        .font(.caption)
+                        .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .hueGlass(cornerRadius: 30, tint: HueTheme.glassTint(colorScheme, opacity: 0.06))
+    }
+
+    private func runSiriSetup() {
+        switch SiriShortcutsSetup.run() {
+        case .opened:
+            siriSetupNotice = "Re-registered with macOS and opened Shortcuts.app. Look for the “Hue House” section."
+        case .notInApplicationsFolder:
+            siriSetupNotice = "Hue House isn't installed in /Applications. macOS only registers App Intents from there — quit, drag the app into /Applications, and relaunch it."
+        case .registrationFailed(let message):
+            siriSetupNotice = "Couldn't register with macOS: \(message)"
+        }
     }
 }
 
