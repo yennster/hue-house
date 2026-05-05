@@ -39,6 +39,32 @@ jobs:
         if: ${{ inputs.target != 'mac' }}
         run: brew install xcodegen
 
+      # GitHub's macOS runners default to a non-HiDPI virtual display, so a
+      # `screencapture -l` of the app window comes out at 1× and looks soft
+      # when used at the same on-screen size as the local 2× capture.
+      # Switch the runner display into a HiDPI mode so screencapture yields
+      # a Retina-resolution image. iOS-only runs skip this — `simctl io
+      # screenshot` already captures at the simulator's native scale.
+      - name: Enable HiDPI on the runner display
+        if: ${{ inputs.target != 'ios' }}
+        run: |
+          brew install displayplacer
+          DISPLAY_ID="$(displayplacer list | awk -F': ' '/Persistent screen id/ {print $2; exit}')"
+          if [ -z "$DISPLAY_ID" ]; then
+            echo "Could not find a display to reconfigure; falling back to default scale." >&2
+            exit 0
+          fi
+          # Pick the highest-resolution scaled mode the display advertises.
+          MODE_LINE="$(displayplacer list | awk '/scaling:on/ {print}' | sort -k2,2 -nr | head -1)"
+          MODE_ID="$(echo "$MODE_LINE" | awk -F'mode ' '{print $2}' | awk '{print $1}' | tr -d ':')"
+          if [ -z "$MODE_ID" ]; then
+            echo "No HiDPI mode advertised; skipping." >&2
+            exit 0
+          fi
+          echo "Selecting display $DISPLAY_ID mode $MODE_ID"
+          displayplacer "id:$DISPLAY_ID mode:$MODE_ID" || \
+            echo "displayplacer apply failed — capture will still run at the current scale."
+
       - name: Capture screenshots
         run: |
           case "${{ inputs.target }}" in
