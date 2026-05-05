@@ -911,18 +911,24 @@ private struct LightToolbar: View {
             }
             .padding(.horizontal, 8)
 
-            Picker("Preset", selection: Binding(
-                get: { HuePreset.none },
-                set: { preset in
-                    guard preset != .none else { return }
-                    Task { await store.applyPresetToAll(preset) }
+            Menu {
+                ForEach(HuePreset.rowPresets) { preset in
+                    Button {
+                        Task { await store.applyPresetToAll(preset) }
+                    } label: {
+                        Label(preset.title, systemImage: preset.systemImage)
+                    }
                 }
-            )) {
-                ForEach(HuePreset.allCases) { preset in
-                    Text(preset.title).tag(preset)
+            } label: {
+                HStack(spacing: 8) {
+                    Text("Preset")
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(HueTheme.secondaryText(colorScheme))
                 }
             }
-            .pickerStyle(.menu)
+            .menuIndicator(.hidden)
             .frame(width: 154)
             .disabled(store.lights.isEmpty || store.isWorking)
             .buttonStyle(SiriGlassButtonStyle(tone: .quiet, compact: true))
