@@ -258,6 +258,13 @@ public struct HueGradient: Decodable, Equatable, Sendable {
         pixelCount = try container.decodeIfPresent(Int.self, forKey: .pixelCount)
     }
 
+    public init(points: [HueGradientPoint], mode: String?, pointsCapable: Int?, pixelCount: Int?) {
+        self.points = points
+        self.mode = mode
+        self.pointsCapable = pointsCapable
+        self.pixelCount = pixelCount
+    }
+
     private enum CodingKeys: String, CodingKey {
         case points
         case mode

@@ -58,28 +58,23 @@ struct LightsView: View {
             }
 
             Section {
-                HStack(spacing: 12) {
-                    Button {
-                        Task { await store.setAllLights(on: true) }
-                    } label: {
-                        Label("All On", systemImage: "power.circle.fill")
+                let anyOn = store.selectedGroupLights.contains { $0.isOn }
+                Toggle(isOn: Binding(
+                    get: { anyOn },
+                    set: { newValue in
+                        Task { await store.setAllLights(on: newValue) }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
-
-                    Button {
-                        Task { await store.setAllLights(on: false) }
-                    } label: {
-                        Label("All Off", systemImage: "power.circle")
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("All Lights")
+                            .font(.body.weight(.medium))
+                        Text(anyOn ? "On" : "Off")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
                 }
-                .disabled(store.lights.isEmpty || store.isWorking)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .tint(.green)
+                .disabled(store.selectedGroupLights.isEmpty || store.isWorking)
             }
 
             Section("Lights in \(store.selectedGroup.name)") {

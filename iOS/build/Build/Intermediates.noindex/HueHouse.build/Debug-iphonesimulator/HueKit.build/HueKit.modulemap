@@ -1,4 +1,0 @@
-module HueKit {
-header "HueKit-Swift.h"
-export *
-}

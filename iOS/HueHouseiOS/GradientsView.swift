@@ -66,18 +66,6 @@ struct GradientsView: View {
                     )
                 }
             }
-
-            Section {
-                Button {
-                    Task { await store.applySelectedGradient() }
-                } label: {
-                    Label("Apply \(store.selectedGradient.title)", systemImage: "sparkles")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(store.isWorking || store.selectedGroupLights.isEmpty)
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-            }
         }
         .listStyle(.insetGrouped)
     }
