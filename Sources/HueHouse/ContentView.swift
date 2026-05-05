@@ -878,10 +878,10 @@ private struct LightToolbar: View {
                 Image(systemName: "sun.min")
                     .foregroundStyle(HueTheme.secondaryText(colorScheme))
 
-                Slider(value: $brightness, in: 1...100, step: 1) { editing in
+                Slider(value: $brightness, in: 1...100) { editing in
                     isEditingBrightness = editing
                     if !editing {
-                        Task { await store.setAllLights(brightness: brightness) }
+                        Task { await store.setAllLights(brightness: brightness.rounded()) }
                     }
                 }
                 .tint(HueTheme.controlTint(colorScheme))
@@ -990,9 +990,9 @@ private struct LightRow: View {
                 Image(systemName: "sun.min")
                     .foregroundStyle(HueTheme.secondaryText(colorScheme))
 
-                Slider(value: $brightness, in: 1...100, step: 1) { editing in
+                Slider(value: $brightness, in: 1...100) { editing in
                     if !editing {
-                        Task { await store.setLight(light.id, brightness: brightness) }
+                        Task { await store.setLight(light.id, brightness: brightness.rounded()) }
                     }
                 }
                 .disabled(!light.supportsDimming || controlsDisabled)
@@ -1186,7 +1186,7 @@ private struct RGBAColorPopover: View {
                 .frame(width: 14, alignment: .leading)
                 .foregroundStyle(HueTheme.secondaryText(colorScheme))
 
-            Slider(value: value, in: range, step: 1) { editing in
+            Slider(value: value, in: range) { editing in
                 if !editing { onCommit() }
             }
             .tint(tint)

@@ -117,10 +117,10 @@ struct HueMenuBarView: View {
                 Image(systemName: "sun.min")
                     .foregroundStyle(.secondary)
 
-                Slider(value: $brightness, in: 1...100, step: 1) { editing in
+                Slider(value: $brightness, in: 1...100) { editing in
                     isEditingBrightness = editing
                     if !editing {
-                        Task { await store.setAllLights(brightness: brightness) }
+                        Task { await store.setAllLights(brightness: brightness.rounded()) }
                     }
                 }
                 .controlSize(.small)
