@@ -12,6 +12,8 @@ XCODEBUILD="/usr/bin/xcodebuild"
 APPINTENTS_PROCESSOR="$XCODE_DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor"
 APPINTENTS_TRAINING_PROCESSOR="$XCODE_DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor"
 BUNDLE_IDENTIFIER="local.huehouse.mac"
+APP_VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$ROOT_DIR/Packaging/Info.plist")"
+ZIP_PATH="$ROOT_DIR/.build/HueHouse-v$APP_VERSION.zip"
 
 cd "$ROOT_DIR"
 swift build -c release
@@ -101,3 +103,7 @@ fi
 codesign --force --deep --sign - "$APP_DIR"
 
 echo "Created $APP_DIR"
+
+ditto -c -k --keepParent --norsrc "$APP_DIR" "$ZIP_PATH"
+
+echo "Created $ZIP_PATH"

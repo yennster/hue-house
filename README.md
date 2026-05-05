@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/yennster/hue-house/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-0.4.0-black?style=for-the-badge">
+    <img alt="Version" src="https://img.shields.io/badge/version-0.5.0-black?style=for-the-badge">
   </a>
   <a href="https://www.swift.org">
     <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6.0-black?style=for-the-badge&logo=swift">
@@ -166,11 +166,12 @@ The same `HueStore` powers both the menu bar and the main window, so changes in 
 
 ## Packaging
 
-Build a standalone, ad-hoc-signed macOS app bundle:
+Build a standalone, ad-hoc-signed macOS app bundle and release zip:
 
 ```sh
 sh Scripts/package-app.sh
 open .build/HueHouse.app
+# Release archive: .build/HueHouse-vX.Y.Z.zip
 ```
 
 The packaging script:
@@ -180,6 +181,7 @@ The packaging script:
 - Copies `Packaging/Info.plist` and the bundled `AppIcon.icns`.
 - Generates App Intents metadata when full Xcode tooling is installed.
 - Ad-hoc signs the bundle (`codesign --sign -`) so recent macOS launches the app via right-click → Open instead of refusing it as "damaged."
+- Creates `.build/HueHouse-vX.Y.Z.zip` from the signed app bundle, using the version in `Packaging/Info.plist`.
 
 For a fully frictionless launch (no Gatekeeper prompt at all), the bundle would need to be signed with an Apple Developer ID and notarized — that requires Apple Developer Program membership.
 
@@ -255,7 +257,8 @@ Packaging/                     macOS app bundle assets
   AppIcon-1024.png             Master icon source
 
 Scripts/
-  package-app.sh               Release macOS app bundle builder + ad-hoc signer
+  package-app.sh               Release macOS app bundle builder, zip creator
+                               + ad-hoc signer
   generate-icon.swift          CoreGraphics icon generator — produces both
                                Packaging/AppIcon.icns (macOS, with squircle inset) and
                                iOS/HueHouseiOS/Assets.xcassets/AppIcon.appiconset/
@@ -275,11 +278,10 @@ Network access is limited to the Hue Bridge IP and `discovery.meethue.com` for c
 
 ## Versioning
 
-Current app version: `0.4.0`
+Current app version: `0.5.0`
 
-Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.4.0` so the repository badges, release notes, and app bundle version stay aligned.
+Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.5.0` so the repository badges, release notes, app bundle version, and generated zip filename stay aligned.
 
 ## Support
 
 If Hue House makes your mornings a little brighter, [a coffee tip](https://www.buymeacoffee.com/yennster) is always appreciated, never required.
-
