@@ -31,7 +31,7 @@ jobs:
         run: swift test
 
   ios-build:
-    name: iOS — generate & build app for simulator
+    name: iOS — build & test
     runs-on: macos-15
 
     steps:
