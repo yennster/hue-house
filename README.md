@@ -33,9 +33,9 @@
   <span> - </span>
   <a href="#siri-and-shortcuts">Siri</a>
   <span> - </span>
-  <a href="#ios-app">iOS</a>
-  <span> - </span>
   <a href="#packaging">Packaging</a>
+  <span> - </span>
+  <a href="#ios-app">iOS app</a>
   <span> - </span>
   <a href="#support">Support</a>
 </p>
@@ -164,6 +164,25 @@ When Hue House is running, a lightbulb glyph appears in the macOS menu bar. Clic
 
 The same `HueStore` powers both the menu bar and the main window, so changes in either are reflected instantly in the other.
 
+## Packaging
+
+Build a standalone, ad-hoc-signed macOS app bundle:
+
+```sh
+sh Scripts/package-app.sh
+open .build/HueHouse.app
+```
+
+The packaging script:
+
+- Builds the release executable with SwiftPM.
+- Creates `.build/HueHouse.app`.
+- Copies `Packaging/Info.plist` and the bundled `AppIcon.icns`.
+- Generates App Intents metadata when full Xcode tooling is installed.
+- Ad-hoc signs the bundle (`codesign --sign -`) so recent macOS launches the app via right-click → Open instead of refusing it as "damaged."
+
+For a fully frictionless launch (no Gatekeeper prompt at all), the bundle would need to be signed with an Apple Developer ID and notarized — that requires Apple Developer Program membership.
+
 ## iOS app
 
 <p align="center">
@@ -191,25 +210,6 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun devicectl device 
 Find your device with `xcrun devicectl list devices`. Free Personal Team signing is enough for testing on a real device (apps expire after 7 days). Full setup, simulator builds, and the team-ID-extraction recipe live in [iOS/README.md](iOS/README.md).
 
 What's *not* on iOS: the menu bar dropdown, the Hide-Dock-icon toggle, and the App Intents (yet). Everything else — pairing, light controls, RGBA picker, gradient studio, CSS gradient import, session skip list, retries — is identical because it all lives in `HueKit`.
-
-## Packaging
-
-Build a standalone, ad-hoc-signed macOS app bundle:
-
-```sh
-sh Scripts/package-app.sh
-open .build/HueHouse.app
-```
-
-The packaging script:
-
-- Builds the release executable with SwiftPM.
-- Creates `.build/HueHouse.app`.
-- Copies `Packaging/Info.plist` and the bundled `AppIcon.icns`.
-- Generates App Intents metadata when full Xcode tooling is installed.
-- Ad-hoc signs the bundle (`codesign --sign -`) so recent macOS launches the app via right-click → Open instead of refusing it as "damaged."
-
-For a fully frictionless launch (no Gatekeeper prompt at all), the bundle would need to be signed with an Apple Developer ID and notarized — that requires Apple Developer Program membership.
 
 ## Project Structure
 
