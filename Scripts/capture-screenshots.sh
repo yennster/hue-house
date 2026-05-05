@@ -54,10 +54,16 @@ if [ "$want_mac" -eq 1 ]; then
     trap 'kill $APP_PID 2>/dev/null || true' EXIT INT TERM
 
     # SwiftUI window appearance and demo state need a beat to settle.
-    sleep 3
-
-    # Resolve the window ID via CoreGraphics (no Accessibility permission needed).
-    if ! WIN_ID="$(DEVELOPER_DIR="$DEVELOPER_DIR_PATH" swift "$ROOT_DIR/Scripts/find-window-id.swift" "$APP_PID")"; then
+    # Retry the window lookup — first launch on a clean SwiftPM build can take
+    # a few extra seconds before the window is fully on-screen.
+    WIN_ID=""
+    for _ in 1 2 3 4 5 6 7 8; do
+        sleep 1
+        if WIN_ID="$(DEVELOPER_DIR="$DEVELOPER_DIR_PATH" swift "$ROOT_DIR/Scripts/find-window-id.swift" "$APP_PID" 2>/dev/null)"; then
+            break
+        fi
+    done
+    if [ -z "$WIN_ID" ]; then
         echo "Could not find HueHouse window for pid $APP_PID. Aborting." >&2
         exit 1
     fi
