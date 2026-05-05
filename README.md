@@ -109,7 +109,7 @@ Gradient-capable Hue lights (Lightstrip Plus, Play, Festavia, etc.) receive a mu
 
 ### Importing CSS gradients
 
-Click **Import CSS Gradient** at the bottom of the palette list. Paste any standard CSS gradient — `linear-gradient`, `radial-gradient`, or `conic-gradient` — and the app extracts the color stops, converts each from sRGB to CIE 1931 xy chromaticity (the same color space the bridge expects), and saves it as a custom palette.
+Click **Import Gradient** at the bottom of the palette list. Paste any standard CSS gradient — `linear-gradient`, `radial-gradient`, or `conic-gradient` — and the app extracts the color stops, converts each from sRGB to CIE 1931 xy chromaticity (the same color space the bridge expects), and saves it as a custom palette.
 
 ```
 linear-gradient(90deg, rgba(131,58,180,1) 0%, rgba(253,29,29,1) 50%, rgba(252,176,69,1) 100%)
@@ -152,15 +152,20 @@ Room and zone names come from your Hue Bridge. Pair the app once before using vo
 
 ## Menu bar
 
+<p align="center">
+  <img alt="Hue House menu bar dropdown" src="docs/menubar.png" width="280">
+</p>
+
 When Hue House is running, a lightbulb glyph appears in the macOS menu bar. Clicking it opens a 320pt-wide window with:
 
 - The current room/zone picker
-- All On / All Off
+- All On / All Off and a group brightness slider
 - The full gradient palette (built-ins plus your custom CSS imports)
-- Quick-color presets
+- Quick-color presets — each button fills with the color it applies on hover
+- A Hide Dock icon toggle for menu-bar-only mode
 - Refresh, Open App, and Quit actions
 
-The same `HueStore` powers both the menu bar and the main window, so changes in either are reflected instantly in the other.
+Buttons and gradient rows highlight on hover with the system accent color, matching the look of native macOS menus. The same `HueStore` powers both the menu bar and the main window, so the brightness slider, selected room, and selected gradient stay in sync — change one, the other updates instantly.
 
 ## Packaging
 
@@ -278,4 +283,4 @@ Network access is limited to the Hue Bridge IP and `discovery.meethue.com` for c
 
 Current app version: `0.6.0`
 
-Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.5.0` so the repository badges, release notes, app bundle version, and generated zip filename stay aligned.
+Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.6.0` so the repository badges, release notes, app bundle version, and generated zip filename stay aligned.
