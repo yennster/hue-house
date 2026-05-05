@@ -859,6 +859,13 @@ private struct LightToolbar: View {
     @EnvironmentObject private var store: HueStore
     @Environment(\.colorScheme) private var colorScheme
 
+    @State private var brightness: Double = 100
+    @State private var hasSyncedBrightness = false
+
+    private var brightnessDisabled: Bool {
+        store.selectedGroupLights.filter(\.supportsDimming).isEmpty || store.isWorking
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             Button {
@@ -877,7 +884,24 @@ private struct LightToolbar: View {
             .disabled(store.lights.isEmpty || store.isWorking)
             .buttonStyle(SiriGlassButtonStyle(tone: .quiet, compact: true))
 
-            Spacer()
+            HStack(spacing: 8) {
+                Image(systemName: "sun.min")
+                    .foregroundStyle(HueTheme.secondaryText(colorScheme))
+
+                Slider(value: $brightness, in: 1...100, step: 1) { editing in
+                    if !editing {
+                        Task { await store.setAllLights(brightness: brightness) }
+                    }
+                }
+                .tint(HueTheme.controlTint(colorScheme))
+                .disabled(brightnessDisabled)
+
+                Text("\(Int(brightness.rounded()))%")
+                    .font(.system(.callout, design: .monospaced))
+                    .foregroundStyle(HueTheme.secondaryText(colorScheme))
+                    .frame(width: 46, alignment: .trailing)
+            }
+            .padding(.horizontal, 8)
 
             Picker("Preset", selection: Binding(
                 get: { HuePreset.none },
@@ -898,6 +922,16 @@ private struct LightToolbar: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .hueGlass(cornerRadius: 24, tint: HueTheme.glassTint(colorScheme, opacity: 0.055), interactive: true)
+        .onAppear { syncBrightnessFromStore() }
+        .onChange(of: store.selectedGroupID) { _, _ in syncBrightnessFromStore() }
+        .onChange(of: store.selectedGroupBrightness) { _, _ in
+            if !hasSyncedBrightness { syncBrightnessFromStore() }
+        }
+    }
+
+    private func syncBrightnessFromStore() {
+        brightness = store.selectedGroupBrightness
+        hasSyncedBrightness = true
     }
 }
 

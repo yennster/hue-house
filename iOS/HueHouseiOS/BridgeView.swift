@@ -92,8 +92,9 @@ struct BridgeView: View {
                 store.forgetBridge()
             } label: {
                 Label("Forget Bridge", systemImage: "xmark.circle")
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(.red)
             }
-            .tint(.red)
             .disabled(store.isWorking)
         }
 

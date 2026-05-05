@@ -242,6 +242,33 @@ public final class HueStore: ObservableObject {
         }
     }
 
+    public func setAllLights(brightness: Double) async {
+        let clamped = max(1, min(100, brightness))
+        let candidates = selectedGroupLights.filter(\.supportsDimming)
+        if isDemoMode {
+            for light in candidates {
+                updateCachedLight(id: light.id) { cached in
+                    cached.dimming = HueDimming(brightness: clamped, minDimLevel: cached.dimming?.minDimLevel)
+                }
+            }
+            return
+        }
+        await run("Could not update all lights.") {
+            try await self.runBatchUpdate(over: candidates) { client, light, _, _ in
+                try await client.setLight(id: light.id, brightness: clamped)
+            }
+        }
+    }
+
+    /// Average brightness of the dimmable, currently-on lights in the selected
+    /// group. Returns 100 when nothing matches so a fresh slider has a sensible
+    /// starting position.
+    public var selectedGroupBrightness: Double {
+        let dimmable = selectedGroupLights.filter { $0.isOn && $0.supportsDimming }
+        guard !dimmable.isEmpty else { return 100 }
+        return dimmable.map(\.brightness).reduce(0, +) / Double(dimmable.count)
+    }
+
     public func setLight(_ id: String, on: Bool) async {
         if isDemoMode {
             updateCachedLight(id: id) { $0.on = HueOnState(on: on) }

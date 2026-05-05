@@ -15,7 +15,7 @@ struct HueHouseApp: App {
         WindowGroup(id: "main") {
             ContentView()
                 .environmentObject(store)
-                .frame(minWidth: 760, minHeight: 540)
+                .frame(minWidth: 920, minHeight: 600)
                 .task {
                     applyActivationPolicy()
                     HueAppearanceMode.apply(

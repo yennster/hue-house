@@ -4,6 +4,17 @@ import SwiftUI
 struct LightsView: View {
     @EnvironmentObject private var store: HueStore
     @State private var isRefreshSpinning = false
+    @State private var groupBrightness: Double = 100
+    @State private var hasSyncedGroupBrightness = false
+
+    private var groupBrightnessDisabled: Bool {
+        store.selectedGroupLights.filter(\.supportsDimming).isEmpty || store.isWorking
+    }
+
+    private func syncGroupBrightnessFromStore() {
+        groupBrightness = store.selectedGroupBrightness
+        hasSyncedGroupBrightness = true
+    }
 
     var body: some View {
         Group {
@@ -75,6 +86,24 @@ struct LightsView: View {
                 }
                 .tint(.green)
                 .disabled(store.selectedGroupLights.isEmpty || store.isWorking)
+
+                HStack(spacing: 12) {
+                    Image(systemName: "sun.min")
+                        .foregroundStyle(.secondary)
+
+                    Slider(value: $groupBrightness, in: 1...100, step: 1) { editing in
+                        if !editing {
+                            Task { await store.setAllLights(brightness: groupBrightness) }
+                        }
+                    }
+                    .tint(.green)
+
+                    Text("\(Int(groupBrightness.rounded()))%")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .frame(width: 42, alignment: .trailing)
+                }
+                .disabled(groupBrightnessDisabled)
             }
 
             Section("Lights in \(store.selectedGroup.name)") {
@@ -93,6 +122,11 @@ struct LightsView: View {
         .listStyle(.insetGrouped)
         .refreshable {
             await store.refreshLights()
+        }
+        .onAppear { syncGroupBrightnessFromStore() }
+        .onChange(of: store.selectedGroupID) { _, _ in syncGroupBrightnessFromStore() }
+        .onChange(of: store.selectedGroupBrightness) { _, _ in
+            if !hasSyncedGroupBrightness { syncGroupBrightnessFromStore() }
         }
         .navigationDestination(for: String.self) { id in
             if let light = store.lights.first(where: { $0.id == id }) {

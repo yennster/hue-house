@@ -7,6 +7,13 @@ struct HueMenuBarView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(HueAppStorage.hidesDockIconKey) private var hidesDockIcon = false
 
+    @State private var brightness: Double = 100
+    @State private var hasSyncedBrightness = false
+
+    private var brightnessDisabled: Bool {
+        store.selectedGroupLights.filter(\.supportsDimming).isEmpty || store.isWorking
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
@@ -97,7 +104,31 @@ struct HueMenuBarView: View {
                 .disabled(store.lights.isEmpty || store.isWorking)
             }
             .padding(.horizontal, 12)
+
+            HStack(spacing: 8) {
+                Image(systemName: "sun.min")
+                    .foregroundStyle(.secondary)
+
+                Slider(value: $brightness, in: 1...100, step: 1) { editing in
+                    if !editing {
+                        Task { await store.setAllLights(brightness: brightness) }
+                    }
+                }
+                .controlSize(.small)
+                .disabled(brightnessDisabled)
+
+                Text("\(Int(brightness.rounded()))%")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, alignment: .trailing)
+            }
+            .padding(.horizontal, 12)
             .padding(.bottom, 6)
+            .onAppear { syncBrightnessFromStore() }
+            .onChange(of: store.selectedGroupID) { _, _ in syncBrightnessFromStore() }
+            .onChange(of: store.selectedGroupBrightness) { _, _ in
+                if !hasSyncedBrightness { syncBrightnessFromStore() }
+            }
         }
 
         Divider()
@@ -224,6 +255,11 @@ struct HueMenuBarView: View {
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
+    }
+
+    private func syncBrightnessFromStore() {
+        brightness = store.selectedGroupBrightness
+        hasSyncedBrightness = true
     }
 
     private func openMainWindow() {
