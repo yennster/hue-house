@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/yennster/hue-house/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-0.7.2-black?style=for-the-badge">
+    <img alt="Version" src="https://img.shields.io/badge/version-0.7.3-black?style=for-the-badge">
   </a>
   <a href="https://www.swift.org">
     <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6.0-black?style=for-the-badge&logo=swift">
@@ -290,6 +290,6 @@ Network access is limited to the Hue Bridge IP and `discovery.meethue.com` for c
 
 ## Versioning
 
-Current app version: `0.7.2`
+Current app version: `0.7.3`
 
 Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values in `Packaging/Info.plist`. Tag GitHub releases with semantic versions such as `v0.6.0` so the repository badges, release notes, app bundle version, and generated zip filename stay aligned.
