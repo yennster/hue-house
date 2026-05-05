@@ -74,25 +74,29 @@ enum HueTheme {
 }
 
 extension View {
-    @ViewBuilder
     func hueGlass(cornerRadius: CGFloat = 20, tint: Color? = nil, interactive _: Bool = false) -> some View {
-        // Interactive Liquid Glass reacts to surrounding UI (and screenshots
-        // capture those reflections, which looks distracting). The `interactive`
-        // parameter is kept for source compatibility but always ignored — every
-        // surface uses calm, static glass.
-        if #available(macOS 26.0, *) {
-            glassEffect(
-                Glass.regular.tint(tint),
-                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            )
-        } else {
-            background(.regularMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(Color.primary.opacity(0.16), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
-        }
+        // The macOS 26 `glassEffect` Liquid Glass material refracts and tints
+        // surrounding UI, which screenshots capture as ghosted reflections of
+        // the rest of the window. We always use `.regularMaterial` plus a
+        // hairline stroke for a calm, screenshot-friendly surface that still
+        // keeps a sense of depth. The `interactive` parameter is kept for
+        // source compatibility but ignored.
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return background(.regularMaterial, in: shape)
+            .overlay {
+                // Both overlays must opt out of hit testing — otherwise the
+                // tint fill (even when fully transparent) intercepts clicks
+                // and scroll gestures aimed at the wrapped content.
+                shape
+                    .fill(tint ?? .clear)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                shape
+                    .stroke(Color.primary.opacity(0.16), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
     }
 
     func siriTextFieldChrome() -> some View {

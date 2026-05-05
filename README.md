@@ -37,6 +37,10 @@
   <a href="#support">Support</a>
 </p>
 
+<p align="center">
+  <img alt="Hue House — Gradient Studio and per-light controls" src="docs/hue-house-light-controls.png" width="780">
+</p>
+
 ## Highlights
 
 Hue House is a SwiftUI Mac app for finding a Philips Hue Bridge on your local network, pairing with it once, and controlling the lights in your house from a polished Apple-style interface.
@@ -220,8 +224,5 @@ Release builds use the `CFBundleShortVersionString` and `CFBundleVersion` values
 
 ## Support
 
-If Hue House makes your mornings a little brighter, a coffee tip is always appreciated, never required.
+If Hue House makes your mornings a little brighter, [a coffee tip](https://www.buymeacoffee.com/yennster) is always appreciated, never required.
 
-<p align="center">
-  <a href="https://www.buymeacoffee.com/yennster"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=yennster&button_colour=ec5fb2&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
-</p>
