@@ -3,17 +3,25 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var store: HueStore
+    @State private var selectedTab: RootTab
+
+    init(initialTab: RootTab = .lights) {
+        _selectedTab = State(initialValue: initialTab)
+    }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack { LightsView() }
                 .tabItem { Label("Lights", systemImage: "lightbulb.2.fill") }
+                .tag(RootTab.lights)
 
             NavigationStack { GradientsView() }
                 .tabItem { Label("Gradients", systemImage: "paintpalette.fill") }
+                .tag(RootTab.gradients)
 
             NavigationStack { BridgeView() }
                 .tabItem { Label("Bridge", systemImage: "wifi.router.fill") }
+                .tag(RootTab.bridge)
         }
         .alert(
             store.errorAlert?.title ?? "",
